@@ -21,7 +21,23 @@
         "command": "vscode-aem.mvn",
         "title": "AEM Maven Helper"
       }
-    ]
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "AEM Maven Helper",
+      "properties": {
+        "aemMavenHelper.skipTests": {
+          "type": "boolean",
+          "default": false,
+          "description": "Skip running tests during Maven build (-DskipTests)."
+        },
+        "aemMavenHelper.dryRun": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show the Maven command that would be run, but do not execute it."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
@@ -35,7 +51,8 @@
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "build:cli": "esbuild src/aemMavenHelper.ts --bundle --platform=node --outfile=dist/aemMavenHelper.js --format=cjs --external:fast-xml-parser --external:fs --external:path"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -52,5 +69,6 @@
   },
   "dependencies": {
     "fast-xml-parser": "^5.2.5"
-  }
+  },
+  "publisher": "windelicato"
 }

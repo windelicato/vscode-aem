@@ -23,18 +23,31 @@ export class AemMavenHelper {
 
   public getError(): string | undefined { return this._error; }
 
-  public parseInputArgs(input: string) {
+  public parseInputArgs(input: string, opts?: { skipTests?: boolean; dryRun?: boolean }) {
     const args = input.trim().split(/\s+/);
     let moduleName: string | undefined;
     const flags: string[] = [];
+    let skipTestsOverride: boolean | undefined = opts?.skipTests;
+    let dryRunOverride: boolean | undefined = opts?.dryRun;
     for (const arg of args) {
       if (arg.startsWith('--')) {
-        flags.push(arg);
+        if (arg === '--build' || arg === '--all') {
+          flags.push(arg);
+        } else if (arg === '--skip-tests') {
+          skipTestsOverride = true;
+        } else if (arg === '--dry-run') {
+          dryRunOverride = true;
+        }
       } else if (!moduleName) {
         this._targetModule = arg;
       }
     }
     this._flags = flags;
+    // Store settings for skipTests and dryRun, allowing CLI override
+    (this as any)._settings = {
+      skipTests: skipTestsOverride,
+      dryRun: dryRunOverride
+    };
   }
 
   public buildCommand(): { command: string, directory: string, error?: string } {
@@ -64,6 +77,13 @@ export class AemMavenHelper {
         }
         return best;
       }, undefined as PomModule | undefined) || this._modules.find(m => m.isRoot);
+      // If resolved to root pom, prefer 'all' module if it exists
+      if (targetModule && targetModule.isRoot) {
+        const allModule = this._modules.find(m => m.name === 'all');
+        if (allModule) {
+          targetModule = allModule;
+        }
+      }
     }
 
     if (!targetModule) {
@@ -83,13 +103,14 @@ export class AemMavenHelper {
       return { command: '', directory, error: this._error };
     }
 
-    // Add skip tests if flag is present
-    if (this._flags.includes('--skip-tests')) {
+    // Add skip tests if setting is enabled
+    const settings = (this as any)._settings || {};
+    if (settings.skipTests) {
       command += ' -DskipTests';
     }
 
-    // Handle dry-run
-    if (this._flags.includes('--dry-run')) {
+    // Handle dry-run if setting is enabled
+    if (settings.dryRun) {
       command = `echo [DRY RUN] Would run: ${command} in ${directory}`;
     }
 

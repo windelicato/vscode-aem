@@ -8,8 +8,8 @@ export function activate(context: vscode.ExtensionContext) {
 	const aemMvnDisposable = vscode.commands.registerCommand('vscode-aem.mvn', async () => {
 		// Prompt for arguments (improved parsing)
 		const input = await vscode.window.showInputBox({
-			prompt: 'aem-mvn arguments (e.g. ui.apps --skip-tests --dry-run)',
-			placeHolder: '<module> [--build] [--skip-tests] [--dry-run] [--all] [--help]'
+			prompt: 'aem-mvn arguments (e.g. ui.apps)',
+			placeHolder: '<module> [--build] [--all]'
 		});
 		if (input === undefined) {
 			return;
@@ -30,8 +30,14 @@ export function activate(context: vscode.ExtensionContext) {
 			const filePath = activeEditor.document.uri.fsPath;
 			cwd = path.dirname(filePath);
 		}
+
+		// Read settings for skipTests and dryRun
+		const config = vscode.workspace.getConfiguration('aemMavenHelper');
+		const skipTests = config.get<boolean>('skipTests', false);
+		const dryRun = config.get<boolean>('dryRun', false);
+
 		const helper = new AemMavenHelper(cwd);
-		helper.parseInputArgs(input);
+		helper.parseInputArgs(input, { skipTests, dryRun });
 		const { command, directory, error } = helper.buildCommand();
 		if (error) {
 			vscode.window.showErrorMessage(error);
