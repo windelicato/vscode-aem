@@ -50,21 +50,37 @@ export class PomModule {
     } catch (e) {}
 
     const profiles: string[] = [];
-    const profilesArr = Array.isArray(pom.project?.profiles?.profile)
-      ? pom.project.profiles.profile
-      : pom.project?.profiles?.profile
-      ? [pom.project.profiles.profile]
-      : [];
-    for (const prof of profilesArr) {
-      if (prof.id) { profiles.push(prof.id); }
+    // 1. Prefer autoInstallSinglePackage if present in module
+    const moduleProfiles = pom.project?.profiles?.profile;
+    const moduleProfilesArr = Array.isArray(moduleProfiles) ? moduleProfiles : moduleProfiles ? [moduleProfiles] : [];
+    if (moduleProfilesArr.some((prof: any) => prof.id === 'autoInstallSinglePackage')) {
+      profiles.push('autoInstallSinglePackage');
     }
-    const parentProfilesArr = Array.isArray(parentPom.project?.profiles?.profile)
-      ? parentPom.project.profiles.profile
-      : parentPom.project?.profiles?.profile
-      ? [parentPom.project.profiles.profile]
-      : [];
-    for (const prof of parentProfilesArr) {
-      if (prof.id && !profiles.includes(prof.id)) { profiles.push(prof.id); }
+    // 2. Prefer autoInstallPackage if present in module
+    if (moduleProfilesArr.some((prof: any) => prof.id === 'autoInstallPackage')) {
+      profiles.push('autoInstallPackage');
+    }
+    // 3. If no specific profile, check content-package conditions
+    const packaging = pom.project?.packaging;
+    const plugins = pom.project?.build?.plugins?.plugin;
+    const pluginsArr = Array.isArray(plugins) ? plugins : plugins ? [plugins] : [];
+    if (
+      packaging === 'content-package' &&
+      pluginsArr.some((p: any) =>
+        p.artifactId === 'content-package-maven-plugin' ||
+        p.artifactId === 'filevault-package-maven-plugin')
+    ) {
+      if (!profiles.includes('autoInstallPackage')) {
+        profiles.push('autoInstallPackage');
+      }
+    }
+    // 4. Prefer autoInstallBundle for bundles (with sling-maven-plugin and not content-package)
+    const parentProfiles = parentPom.project?.profiles?.profile;
+    const parentProfilesArr = Array.isArray(parentProfiles) ? parentProfiles : parentProfiles ? [parentProfiles] : [];
+    const hasAutoInstallBundle = parentProfilesArr.some((prof: any) => prof.id === 'autoInstallBundle');
+    const hasSlingMavenPlugin = pluginsArr.some((p: any) => p.artifactId === 'sling-maven-plugin');
+    if (hasAutoInstallBundle && hasSlingMavenPlugin) {
+      profiles.push('autoInstallBundle');
     }
     this.profiles = profiles;
   }

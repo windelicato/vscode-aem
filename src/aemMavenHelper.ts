@@ -83,6 +83,11 @@ export class AemMavenHelper {
       return { command: '', directory, error: this._error };
     }
 
+    // Add skip tests if flag is present
+    if (this._flags.includes('--skip-tests')) {
+      command += ' -DskipTests';
+    }
+
     // Handle dry-run
     if (this._flags.includes('--dry-run')) {
       command = `echo [DRY RUN] Would run: ${command} in ${directory}`;
