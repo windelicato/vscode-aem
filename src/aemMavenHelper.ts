@@ -1,132 +1,159 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { XMLParser } from 'fast-xml-parser';
+import { PomModule } from './PomModule';
 
 export class AemMavenHelper {
-  workspaceRoot: string;
-  startDir: string;
+  // Private fields
+  private _cwd: string = '';
+  private _flags: string[] = [];
+  private _modules: PomModule[] = [];
+  private _targetModule?: string;
+  private _error?: string;
 
-  constructor(workspaceRoot: string, startDir: string) {
-    this.workspaceRoot = workspaceRoot;
-    this.startDir = startDir;
+  // Only these are public
+  constructor(cwd?: string) {
+    if (cwd) {
+      this._cwd = cwd;
+    } else {
+      this._cwd = process.cwd();
+    }
+    this.findModules(this._cwd);
   }
 
-  findModulePom(): string | null {
-    let currentDir = this.workspaceRoot;
-    const relPath = path.relative(this.workspaceRoot, this.startDir);
-    if (!relPath || relPath === '') {
-      const pomPath = path.join(currentDir, 'pom.xml');
-      return fs.existsSync(pomPath) ? currentDir : null;
-    }
-    const segments = relPath.split(path.sep);
-    const parser = new XMLParser();
-    for (const segment of segments) {
-      const pomPath = path.join(currentDir, 'pom.xml');
-      if (!fs.existsSync(pomPath)) { return null; }
-      const pomContent = fs.readFileSync(pomPath, 'utf8');
-      let modules: string[] = [];
-      try {
-        const pom = parser.parse(pomContent);
-        const rawModules = pom.project?.modules?.module;
-        if (Array.isArray(rawModules)) {
-          modules = rawModules;
-        } else if (typeof rawModules === 'string') {
-          modules = [rawModules];
-        }
-      } catch (e) {
-        return null;
-      }
-      if (!modules.includes(segment)) {
-        return null;
-      }
-      currentDir = path.join(currentDir, segment);
-    }
-    const finalPom = path.join(currentDir, 'pom.xml');
-    return fs.existsSync(finalPom) ? currentDir : null;
-  }
+  public getError(): string | undefined { return this._error; }
 
-  selectProfile(moduleDir: string): string | null {
-    const pomPath = path.join(moduleDir, 'pom.xml');
-    const parentPomPath = path.join(moduleDir, '..', 'pom.xml');
-    if (!fs.existsSync(pomPath)) { return null; }
-    const pomContent = fs.readFileSync(pomPath, 'utf8');
-    let parentPomContent = '';
-    if (fs.existsSync(parentPomPath)) {
-      parentPomContent = fs.readFileSync(parentPomPath, 'utf8');
-    }
-    const parser = new XMLParser();
-    let pom: any = {};
-    let parentPom: any = {};
-    try {
-      pom = parser.parse(pomContent);
-    } catch (e) {}
-    try {
-      parentPom = parser.parse(parentPomContent);
-    } catch (e) {}
-
-    const profiles = pom.project?.profiles?.profile;
-    const profilesArr = Array.isArray(profiles) ? profiles : profiles ? [profiles] : [];
-    for (const prof of profilesArr) {
-      if (prof.id === 'autoInstallSinglePackage') {
-        return '-PautoInstallSinglePackage';
-      }
-    }
-    for (const prof of profilesArr) {
-      if (prof.id === 'autoInstallPackage') {
-        return '-PautoInstallPackage';
-      }
-    }
-    const packaging = pom.project?.packaging;
-    const plugins = pom.project?.build?.plugins?.plugin;
-    const pluginsArr = Array.isArray(plugins) ? plugins : plugins ? [plugins] : [];
-    if (packaging === 'content-package' && pluginsArr.some((p: any) => p.artifactId === 'content-package-maven-plugin' || p.artifactId === 'filevault-package-maven-plugin')) {
-      return '-PautoInstallPackage';
-    }
-    const parentProfiles = parentPom.project?.profiles?.profile;
-    const parentProfilesArr = Array.isArray(parentProfiles) ? parentProfiles : parentProfiles ? [parentProfiles] : [];
-    const hasAutoInstallBundle = parentProfilesArr.some((prof: any) => prof.id === 'autoInstallBundle');
-    const hasSlingMavenPlugin = pluginsArr.some((p: any) => p.artifactId === 'sling-maven-plugin');
-    if (hasAutoInstallBundle && hasSlingMavenPlugin) {
-      return '-PautoInstallBundle';
-    }
-    return null;
-  }
-
-  buildCommand(input: string): { moduleDir: string | null, mvnCmd: string, error?: string } {
-    let moduleDir = this.findModulePom();
-    if (this.startDir === this.workspaceRoot) {
-      moduleDir = path.join(this.workspaceRoot, 'all');
-    }
-    if (!moduleDir) {
-      return { moduleDir: null, mvnCmd: '', error: 'Could not find a pom.xml from current directory.' };
-    }
-    let mvnCmd = 'mvn clean install';
-    let mvnCmdOpts = '';
-    if (!input.includes('--build')) {
-      const profile = this.selectProfile(moduleDir);
-      if (profile) {
-        mvnCmdOpts += ' ' + profile;
-      } else {
-        return { moduleDir, mvnCmd: '', error: "'install' command requires autoInstallSinglePackage, autoInstallBundle, or autoInstallPackage profile in pom.xml or its parent." };
-      }
-    }
-    if (input.includes('--skip-tests')) {
-      mvnCmdOpts += ' -DskipTests';
-    }
-    return { moduleDir, mvnCmd: (mvnCmd + mvnCmdOpts).trim() };
-  }
-
-  static parseArgs(input: string): { moduleArg?: string, flags: string[] } {
+  public parseInputArgs(input: string) {
     const args = input.trim().split(/\s+/);
-    let moduleArg: string | undefined;
+    let moduleName: string | undefined;
     const flags: string[] = [];
     for (const arg of args) {
       if (arg.startsWith('--')) {
         flags.push(arg);
-      } else if (!moduleArg) {
-        moduleArg = arg;
+      } else if (!moduleName) {
+        this._targetModule = arg;
       }
     }
-    return { moduleArg, flags };
+    this._flags = flags;
+  }
+
+  public buildCommand(): { command: string, directory: string, error?: string } {
+    let command = '';
+    let directory = '';
+    let targetModule: PomModule | undefined;
+    this._error = undefined;
+
+    // Find the target module based on flags and input
+    if (this._flags.includes('--all')) {
+      targetModule = this._modules.find(m => m.name === 'all');
+    } else if (this._targetModule) {
+      targetModule = this._modules.find(m => m.name === this._targetModule);
+    } else {
+      // If no target specified, find the module whose absolutePath is a parent of cwd and has the longest matching path
+      const cwdResolved = path.resolve(this._cwd);
+      const isParent = (parent: string, child: string) => {
+        const rel = path.relative(parent, child);
+        return !rel.startsWith('..') && !path.isAbsolute(rel);
+      };
+      targetModule = this._modules.reduce((best, mod) => {
+        const modPath = path.resolve(mod.absolutePath);
+        if (isParent(modPath, cwdResolved)) {
+          if (!best || modPath.length > path.resolve(best.absolutePath).length) {
+            return mod;
+          }
+        }
+        return best;
+      }, undefined as PomModule | undefined) || this._modules.find(m => m.isRoot);
+    }
+
+    if (!targetModule) {
+      this._error = 'Could not determine target module.';
+      return { command: '', directory: '', error: this._error };
+    }
+
+    directory = targetModule.absolutePath;
+
+    // Build the base command
+    if (this._flags.includes('--build')) {
+      command = 'mvn clean install';
+    } else if (targetModule.profiles && targetModule.profiles.length > 0) {
+      command = `mvn clean install -P${targetModule.profiles[0]}`;
+    } else {
+      this._error = 'No Maven profiles found for this module. Please check your pom.xml.';
+      return { command: '', directory, error: this._error };
+    }
+
+    // Handle dry-run
+    if (this._flags.includes('--dry-run')) {
+      command = `echo [DRY RUN] Would run: ${command} in ${directory}`;
+    }
+
+    return { command, directory, error: this._error };
+  }
+
+
+  // Find root pom by traversing up until we find a pom.xml with <modules>
+  // Sets this.rootModule and this.modules
+  private findModules(startDir: string): void {
+    let dir = path.resolve(startDir);
+    const rootPath = path.parse(dir).root;
+    this._modules = [];
+    while (dir !== rootPath) {
+      const pomPath = path.join(dir, 'pom.xml');
+      if (fs.existsSync(pomPath)) {
+        try {
+          const pomContent = fs.readFileSync(pomPath, 'utf8');
+          const parser = new XMLParser();
+          const pom = parser.parse(pomContent);
+          if (pom.project && pom.project.modules) {
+            // Create root PomModule and mark as root
+            const rootModule = new PomModule({
+              absolutePath: dir,
+              relativePath: '.',
+              name: path.basename(dir),
+              artifactId: pom.project.artifactId,
+            }) as any;
+            rootModule.isRoot = true;
+            this._modules = [rootModule];
+            // Collect child modules
+            let moduleNames = pom.project.modules.module;
+            if (typeof moduleNames === 'string') { moduleNames = [moduleNames]; }
+            if (Array.isArray(moduleNames)) {
+              for (const modName of moduleNames) {
+                const absPath = path.join(dir, modName);
+                let childArtifactId = modName;
+                // Try to read the artifactId from the child's pom.xml (not the parent)
+                const childPomPath = path.join(absPath, 'pom.xml');
+                if (fs.existsSync(childPomPath)) {
+                  try {
+                    const childPomContent = fs.readFileSync(childPomPath, 'utf8');
+                    const childPom = parser.parse(childPomContent);
+                    if (childPom.project && childPom.project.artifactId) {
+                      childArtifactId = childPom.project.artifactId;
+                    }
+                  } catch (e) {
+                    // ignore parse errors, fallback to modName
+                  }
+                }
+                const childModule = new PomModule({
+                  absolutePath: absPath,
+                  relativePath: modName,
+                  name: modName,
+                  artifactId: childArtifactId
+                }) as any;
+                childModule.isRoot = false;
+                this._modules.push(childModule);
+              }
+            }
+            return;
+          }
+        } catch (e) {
+          // ignore parse errors, keep traversing
+        }
+      }
+      dir = path.dirname(dir);
+    }
+    // If not found, set to empty
+    this._modules = [];
   }
 }
