@@ -14,27 +14,144 @@
   "contributes": {
     "commands": [
       {
-        "command": "vscode-aem.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "vscode-aem.mvn",
         "title": "AEM Maven Helper"
+     },
+      {
+        "command": "vscode-aem.sdk",
+        "title": "AEM SDK Helper"
+      },
+      {
+        "command": "vscode-aem.sdk.setup",
+        "title": "Run SDK Setup"
+      },
+      {
+        "command": "vscode-aem.sdk.start",
+        "title": "Start AEM Instances"
+      },
+      {
+        "command": "vscode-aem.sdk.status",
+        "title": "Check AEM Status"
+      },
+      {
+        "command": "vscode-aem.sdk.log",
+        "title": "Show AEM Error Log"
       }
     ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "vscode-aem.mvn",
+          "group": "navigation@10"
+        },
+        {
+          "command": "vscode-aem.sdk.setup",
+          "group": "navigation@11"
+        },
+        {
+          "command": "vscode-aem.sdk.start",
+          "group": "navigation@11"
+        },
+        {
+          "command": "vscode-aem.sdk.status",
+          "group": "navigation@11"
+        },
+        {
+          "command": "vscode-aem.sdk.log",
+          "group": "navigation@11"
+        }
+      ]
+    },
     "configuration": {
       "type": "object",
-      "title": "AEM Maven Helper",
+      "title": "AEM VSCode",
       "properties": {
         "aemMavenHelper.skipTests": {
           "type": "boolean",
           "default": false,
-          "description": "Skip running tests during Maven build (-DskipTests)."
+          "description": "Skip running tests during Maven build (-DskipTests).",
+          "order": 1
         },
         "aemMavenHelper.dryRun": {
           "type": "boolean",
           "default": false,
-          "description": "Show the Maven command that would be run, but do not execute it."
+          "description": "Show the Maven command that would be run, but do not execute it.",
+          "order": 2
+        },
+        "aemSDK.sdkHome": {
+          "type": "string",
+          "default": "",
+          "description": "Path to your AEM SDK root directory (AEM_SDK_HOME). Must be set explicitly.",
+          "order": 4
+        },
+        "aemSDK.authorPort": {
+          "type": "number",
+          "default": 4502,
+          "description": "Port for the AEM Author instance.",
+          "order": 5
+        },
+        "aemSDK.publisherPort": {
+          "type": "number",
+          "default": 4503,
+          "description": "Port for the AEM Publisher instance.",
+          "order": 6
+        },
+        "aemSDK.authorDebugPort": {
+          "type": "number",
+          "default": 5005,
+          "description": "Debug port for the AEM Author instance.",
+          "order": 7
+        },
+        "aemSDK.publisherDebugPort": {
+          "type": "number",
+          "default": 5006,
+          "description": "Debug port for the AEM Publisher instance.",
+          "order": 8
+        },
+        "aemSDK.requiredJavaVersion": {
+          "type": "number",
+          "default": 11,
+          "description": "Required Java version for AEM SDK (AEM_JAVA_VERSION).",
+          "order": 9
+        },
+        "aemSDK.passwordFile": {
+          "type": "string",
+          "default": "aem-password",
+          "description": "Password file for AEM admin user.",
+          "order": 10
+        },
+        "aemSDK.jvmOpts": {
+          "type": "string",
+          "default": "-Djava.awt.headless=true",
+          "description": "JVM options for AEM SDK.",
+          "order": 11
+        },
+        "aemSDK.jvmDebugBaseOpts": {
+          "type": "string",
+          "default": "-Djava.awt.headless=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n",
+          "description": "JVM debug options for AEM SDK.",
+          "order": 12
+        },
+        "aemSDK.instanceNames": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["author", "publisher"],
+          "description": "AEM instance names.",
+          "order": 13
+        },
+        "aemSDK.quickstartPath": {
+          "type": "string",
+          "default": "",
+          "description": "(Advanced) Path to your AEM SDK Quickstart JAR or ZIP file. Set by the setup command. Edit in settings.json only.",
+          "order": 100,
+          "scope": "resource"
+        },
+        "aemSDK.formsAddonPath": {
+          "type": "string",
+          "default": "",
+          "description": "(Advanced) Path to your AEM Forms Add-on (optional, .far or .zip). Set by the setup command. Edit in settings.json only.",
+          "order": 101,
+          "scope": "resource"
         }
       }
     }

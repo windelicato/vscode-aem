@@ -1,31 +1,32 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { XMLParser } from 'fast-xml-parser';
-import { PomModule } from './PomModule';
+import { PomModule } from './pomModule';
 
 export class AemMavenHelper {
-  // Private fields
-  private _cwd: string = '';
-  private _flags: string[] = [];
-  private _modules: PomModule[] = [];
-  private _targetModule?: string;
-  private _error?: string;
+  // Store last error statically
+  private static _error?: string;
 
-  // Only these are public
-  constructor(cwd?: string) {
-    if (cwd) {
-      this._cwd = cwd;
-    } else {
-      this._cwd = process.cwd();
+  private static showError(msg: string) {
+    AemMavenHelper._error = msg;
+    try {
+      // @ts-ignore
+      if (typeof vscode !== 'undefined' && vscode.window && vscode.window.showErrorMessage) {
+        // @ts-ignore
+        vscode.window.showErrorMessage(msg);
+      } else {
+        console.error(msg);
+      }
+    } catch {
+      console.error(msg);
     }
-    this.findModules(this._cwd);
   }
 
-  public getError(): string | undefined { return this._error; }
+  static getError(): string | undefined { return this._error; }
 
-  public parseInputArgs(input: string, opts?: { skipTests?: boolean; dryRun?: boolean }) {
+  static parseInputArgs(input: string, opts?: { skipTests?: boolean; dryRun?: boolean }) {
     const args = input.trim().split(/\s+/);
-    let moduleName: string | undefined;
+    let targetModule: string | undefined;
     const flags: string[] = [];
     let skipTestsOverride: boolean | undefined = opts?.skipTests;
     let dryRunOverride: boolean | undefined = opts?.dryRun;
@@ -38,37 +39,36 @@ export class AemMavenHelper {
         } else if (arg === '--dry-run') {
           dryRunOverride = true;
         }
-      } else if (!moduleName) {
-        this._targetModule = arg;
+      } else if (!targetModule) {
+        targetModule = arg;
       }
     }
-    this._flags = flags;
-    // Store settings for skipTests and dryRun, allowing CLI override
-    (this as any)._settings = {
-      skipTests: skipTestsOverride,
-      dryRun: dryRunOverride
+    return {
+      targetModule,
+      flags,
+      settings: {
+        skipTests: skipTestsOverride,
+        dryRun: dryRunOverride
+      }
     };
   }
 
-  public buildCommand(): { command: string, directory: string, error?: string } {
-    let command = '';
-    let directory = '';
-    let targetModule: PomModule | undefined;
+  static buildCommand({ cwd, input, opts }: { cwd: string, input: string, opts?: { skipTests?: boolean; dryRun?: boolean } }): { command: string, directory: string, error?: string } {
     this._error = undefined;
-
-    // Find the target module based on flags and input
-    if (this._flags.includes('--all')) {
-      targetModule = this._modules.find(m => m.name === 'all');
-    } else if (this._targetModule) {
-      targetModule = this._modules.find(m => m.name === this._targetModule);
+    const { targetModule, flags, settings } = this.parseInputArgs(input, opts);
+    const modules = this.findModules(cwd);
+    let target: PomModule | undefined;
+    if (flags.includes('--all')) {
+      target = modules.find(m => m.name === 'all');
+    } else if (targetModule) {
+      target = modules.find(m => m.name === targetModule);
     } else {
-      // If no target specified, find the module whose absolutePath is a parent of cwd and has the longest matching path
-      const cwdResolved = path.resolve(this._cwd);
+      const cwdResolved = path.resolve(cwd);
       const isParent = (parent: string, child: string) => {
         const rel = path.relative(parent, child);
         return !rel.startsWith('..') && !path.isAbsolute(rel);
       };
-      targetModule = this._modules.reduce((best, mod) => {
+      target = modules.reduce((best, mod) => {
         const modPath = path.resolve(mod.absolutePath);
         if (isParent(modPath, cwdResolved)) {
           if (!best || modPath.length > path.resolve(best.absolutePath).length) {
@@ -76,54 +76,43 @@ export class AemMavenHelper {
           }
         }
         return best;
-      }, undefined as PomModule | undefined) || this._modules.find(m => m.isRoot);
-      // If resolved to root pom, prefer 'all' module if it exists
-      if (targetModule && targetModule.isRoot) {
-        const allModule = this._modules.find(m => m.name === 'all');
+      }, undefined as PomModule | undefined) || modules.find(m => m.isRoot);
+      if (target && target.isRoot) {
+        const allModule = modules.find(m => m.name === 'all');
         if (allModule) {
-          targetModule = allModule;
+          target = allModule;
         }
       }
     }
-
-    if (!targetModule) {
-      this._error = 'Could not determine target module.';
+    if (!target) {
+      this.showError('Could not determine target module.');
       return { command: '', directory: '', error: this._error };
     }
-
-    directory = targetModule.absolutePath;
-
-    // Build the base command
-    if (this._flags.includes('--build')) {
+    let command = '';
+    let directory = target.absolutePath;
+    if (flags.includes('--build')) {
       command = 'mvn clean install';
-    } else if (targetModule.profiles && targetModule.profiles.length > 0) {
-      command = `mvn clean install -P${targetModule.profiles[0]}`;
+    } else if (target.profiles && target.profiles.length > 0) {
+      command = `mvn clean install -P${target.profiles[0]}`;
     } else {
-      this._error = 'No Maven profiles found for this module. Please check your pom.xml.';
+      this.showError('No Maven profiles found for this module. Please check your pom.xml.');
       return { command: '', directory, error: this._error };
     }
-
-    // Add skip tests if setting is enabled
-    const settings = (this as any)._settings || {};
     if (settings.skipTests) {
       command += ' -DskipTests';
     }
-
-    // Handle dry-run if setting is enabled
     if (settings.dryRun) {
       command = `echo [DRY RUN] Would run: ${command} in ${directory}`;
     }
-
     return { command, directory, error: this._error };
   }
 
-
   // Find root pom by traversing up until we find a pom.xml with <modules>
-  // Sets this.rootModule and this.modules
-  private findModules(startDir: string): void {
+  // Returns array of PomModule
+  static findModules(startDir: string): PomModule[] {
     let dir = path.resolve(startDir);
     const rootPath = path.parse(dir).root;
-    this._modules = [];
+    const modules: PomModule[] = [];
     while (dir !== rootPath) {
       const pomPath = path.join(dir, 'pom.xml');
       if (fs.existsSync(pomPath)) {
@@ -132,7 +121,6 @@ export class AemMavenHelper {
           const parser = new XMLParser();
           const pom = parser.parse(pomContent);
           if (pom.project && pom.project.modules) {
-            // Create root PomModule and mark as root
             const rootModule = new PomModule({
               absolutePath: dir,
               relativePath: '.',
@@ -140,15 +128,13 @@ export class AemMavenHelper {
               artifactId: pom.project.artifactId,
             }) as any;
             rootModule.isRoot = true;
-            this._modules = [rootModule];
-            // Collect child modules
+            modules.push(rootModule);
             let moduleNames = pom.project.modules.module;
             if (typeof moduleNames === 'string') { moduleNames = [moduleNames]; }
             if (Array.isArray(moduleNames)) {
               for (const modName of moduleNames) {
                 const absPath = path.join(dir, modName);
                 let childArtifactId = modName;
-                // Try to read the artifactId from the child's pom.xml (not the parent)
                 const childPomPath = path.join(absPath, 'pom.xml');
                 if (fs.existsSync(childPomPath)) {
                   try {
@@ -157,9 +143,7 @@ export class AemMavenHelper {
                     if (childPom.project && childPom.project.artifactId) {
                       childArtifactId = childPom.project.artifactId;
                     }
-                  } catch (e) {
-                    // ignore parse errors, fallback to modName
-                  }
+                  } catch {}
                 }
                 const childModule = new PomModule({
                   absolutePath: absPath,
@@ -168,18 +152,15 @@ export class AemMavenHelper {
                   artifactId: childArtifactId
                 }) as any;
                 childModule.isRoot = false;
-                this._modules.push(childModule);
+                modules.push(childModule);
               }
             }
-            return;
+            return modules;
           }
-        } catch (e) {
-          // ignore parse errors, keep traversing
-        }
+        } catch {}
       }
       dir = path.dirname(dir);
     }
-    // If not found, set to empty
-    this._modules = [];
+    return modules;
   }
 }

@@ -14,9 +14,11 @@ let dryRun = false;
 if (extraFlags.includes('--skip-tests')) { skipTests = true; }
 if (extraFlags.includes('--dry-run')) { dryRun = true; }
 
-const helper = new AemMavenHelper(cwd);
-helper.parseInputArgs(input, { skipTests, dryRun });
-const { command, directory, error } = helper.buildCommand();
+const { command, directory, error } = AemMavenHelper.buildCommand({
+  cwd,
+  input,
+  opts: { skipTests, dryRun }
+});
 
 if (error) {
   console.error('Error:', error);
