@@ -70,5 +70,10 @@
   "dependencies": {
     "fast-xml-parser": "^5.2.5"
   },
-  "publisher": "windelicato"
+  "publisher": "windelicato",
+  "icon": "images/logo.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/windelicato/vscode-aem"
+  }
 }

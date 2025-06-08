@@ -3,3 +3,22 @@ dist
 node_modules
 .vscode-test/
 *.vsix
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# OSX system files
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# Vim swap/backup files
+*.swp
+*.swo
+*.swn
+*.un~
+*.vimbackup
+*.viminfo
+*.vimswap
+*.vimundo
