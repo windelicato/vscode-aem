@@ -153,23 +153,6 @@ You can also rename the script (e.g. to `aem-maven`) for convenience.
 - Profile detection relies on standard naming and plugin usage.
 - On macOS, even with `-Djava.awt.headless=true`, the Java Dock/taskbar icon may still appear when starting AEM for the first time. This is a limitation of the JVM/AEM startup. To fully suppress the icon, add `-Dapple.awt.UIElement=true` to your JVM options (see extension settings or your `aem.jvmOpts`).
 
-## Release Notes
-
-### 0.0.2
-- Major refactor for maintainability, modularity, and TypeScript best practices.
-- Robust, user-friendly AEM SDK setup, start, stop, status, and log commands with improved error handling and per-instance debug config.
-- All Maven command options now parsed from input string; config values for skipTests, dryRun, and defaultGoal are respected and overridable.
-- Modularized helpers for extraction, file copying, and error handling.
-- Improved command palette/menu structure: all AEM commands are grouped under the "AEM" submenu.
-- Comprehensive, organized tests for Maven and SDK logic, including file system and VS Code API mocking.
-- Integration-style tests for SDK setup and start using real temporary directories for reliable file system assertions.
-- Fixed TypeScript errors in test stubs and mocks; increased test timeouts for async/mocked FS operations.
-- Removed legacy/opts-based logic and top-level mock-fs calls to avoid ENOENT errors.
-- Improved documentation and code comments throughout the codebase.
-
-### 0.0.1
-- Initial release: robust module/profile detection, settings, CLI overrides, and error handling.
-
 ---
 
 **Enjoy fast, error-free AEM Maven builds in VS Code and your shell!**

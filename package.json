@@ -2,7 +2,7 @@
   "name": "vscode-aem",
   "displayName": "vscode-aem",
   "description": "AEM Local Development Toolkit",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -222,7 +222,7 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vscode-test",
-    "build:cli": "esbuild src/aem/maven/helper.ts --bundle --platform=node --outfile=dist/aem/maven/helper.js --format=cjs --external:fast-xml-parser --external:fs --external:path"
+    "build:cli": "esbuild src/aem/maven/helper.ts --bundle --platform=node --outfile=dist/aem/maven/helper.js --format=cjs --external:unzipper"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
