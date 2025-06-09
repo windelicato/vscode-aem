@@ -56,6 +56,10 @@ export class PomModule {
     if (moduleProfilesArr.some((prof: any) => prof.id === 'autoInstallSinglePackage')) {
       profiles.push('autoInstallSinglePackage');
     }
+    // Always add autoInstallSinglePackage for root pom
+    if (this.isRoot && !profiles.includes('autoInstallSinglePackage')) {
+      profiles.push('autoInstallSinglePackage');
+    }
     // 2. Prefer autoInstallPackage if present in module
     if (moduleProfilesArr.some((prof: any) => prof.id === 'autoInstallPackage')) {
       profiles.push('autoInstallPackage');

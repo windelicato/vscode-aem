@@ -68,6 +68,28 @@ suite('AemMavenHelper Command Construction (with AEM archetype fixtures)', () =>
 		assert.ok(directory.endsWith('ui.apps'));
 	});
 
+	test('builds command for ui.apps with profile and --install', () => {
+		const { command, error, directory } = AemMavenHelper.buildCommand({
+			cwd: fixtureRoot,
+			input: 'ui.apps install'
+		});
+		assert.strictEqual(error, undefined);
+		assert.ok(command.includes('-PautoInstallPackage'));
+		assert.ok(command.startsWith('mvn clean install'));
+		assert.ok(directory.endsWith('ui.apps'));
+	});
+
+	test('builds command for ui.apps with profile and --build', () => {
+		const { command, error, directory } = AemMavenHelper.buildCommand({
+			cwd: fixtureRoot,
+			input: 'ui.apps build'
+		});
+		assert.strictEqual(error, undefined);
+		assert.ok(!command.includes('-PautoInstallPackage'));
+		assert.ok(command.startsWith('mvn clean install'));
+		assert.ok(directory.endsWith('ui.apps'));
+	});
+
 	test('builds command for all module with profile', () => {
 		const { command, error, directory } = AemMavenHelper.buildCommand({
 			cwd: fixtureRoot,
@@ -75,7 +97,6 @@ suite('AemMavenHelper Command Construction (with AEM archetype fixtures)', () =>
 		});
 		assert.strictEqual(error, undefined);
 		assert.ok(command.includes('-PautoInstallSinglePackage'));
-		assert.ok(directory.endsWith('all'));
 	});
 
 	test('builds command for core bundle (no profile, falls back to build)', () => {
@@ -86,16 +107,6 @@ suite('AemMavenHelper Command Construction (with AEM archetype fixtures)', () =>
 		assert.strictEqual(error, undefined);
 		assert.ok(command.startsWith('mvn clean install'));
 		assert.ok(directory.endsWith('core'));
-	});
-
-	test('resolves root pom to all module if present', () => {
-		const { command, error, directory } = AemMavenHelper.buildCommand({
-			cwd: fixtureRoot,
-			input: ''
-		});
-		assert.strictEqual(error, undefined);
-		assert.ok(directory.endsWith('all'));
-		assert.ok(command.includes('-PautoInstallSinglePackage'));
 	});
 
 	test('running from deep nested dir builds correct module', () => {
@@ -120,6 +131,17 @@ suite('AemMavenHelper Command Construction (with AEM archetype fixtures)', () =>
 		assert.ok(command.includes('-PautoInstallBundle'));
 		assert.ok(command.includes('-DskipTests'));
 		assert.ok(command.startsWith('echo [DRY RUN]'));
+	});
+
+	test('builds command for all module also builds root pom with singlepackage', () => {
+		const { command, error, directory } = AemMavenHelper.buildCommand({
+			cwd: fixtureRoot,
+			input: 'all'
+		});
+		assert.strictEqual(error, undefined);
+		assert.ok(command.includes('-PautoInstallSinglePackage'));
+		// Should use root pom, not a separate all module
+		assert.ok(directory.endsWith('fixtures'));
 	});
 });
 

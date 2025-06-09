@@ -33,9 +33,12 @@ export class AemMavenHelper {
     let dryRunOverride: boolean | undefined = undefined;
     let defaultGoalOverride: 'build' | 'install' | undefined = undefined;
     for (const arg of args) {
-      if (arg === 'install' || arg === 'build') {
+      if (arg === 'install') {
+        flags.push('--install');
+        defaultGoalOverride = 'install';
+      } else if (arg === 'build') {
         flags.push('--build');
-        defaultGoalOverride = arg as 'build' | 'install';
+        defaultGoalOverride = 'build';
       } else if (arg === 'all') {
         flags.push('--all');
       } else if (arg === 'skip-tests' || arg === '--skip-tests') {
@@ -68,7 +71,7 @@ export class AemMavenHelper {
     const modules = this.findModules(cwd);
     let target: PomModule | undefined;
     if (flags.includes('--all')) {
-      target = modules.find(m => m.name === 'all');
+      target = modules.find(m => m.isRoot);
     } else if (targetModule) {
       target = modules.find(m => m.name === targetModule);
     } else {
@@ -86,12 +89,6 @@ export class AemMavenHelper {
         }
         return best;
       }, undefined as PomModule | undefined) || modules.find(m => m.isRoot);
-      if (target && target.isRoot) {
-        const allModule = modules.find(m => m.name === 'all');
-        if (allModule) {
-          target = allModule;
-        }
-      }
     }
     if (!target) {
       this.showError('Could not determine target module.');
@@ -99,8 +96,8 @@ export class AemMavenHelper {
     }
     let command = '';
     let directory = target.absolutePath;
-    if (flags.includes('--build')) {
-      command = settings.defaultGoal === 'build' ? 'mvn clean install' : 'mvn install';
+    if ((flags.includes('--build') || settings.defaultGoal === 'build') && !flags.includes('--install')) {
+      command = 'mvn clean install';
     } else if (target.profiles && target.profiles.length > 0) {
       command = `mvn clean install -P${target.profiles[0]}`;
     } else {
@@ -135,8 +132,8 @@ export class AemMavenHelper {
               relativePath: '.',
               name: path.basename(dir),
               artifactId: pom.project.artifactId,
-            }) as any;
-            rootModule.isRoot = true;
+              isRoot: true
+            });
             modules.push(rootModule);
             let moduleNames = pom.project.modules.module;
             if (typeof moduleNames === 'string') { moduleNames = [moduleNames]; }
