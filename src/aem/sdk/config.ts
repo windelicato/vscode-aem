@@ -1,14 +1,19 @@
+export interface InstanceConfig {
+  name: string;
+  port: number;
+  debugPort: number;
+  debug?: boolean;
+}
+
 export interface AemSDKConfig {
-  authorPort: number;
-  publisherPort: number;
-  authorDebugPort: number;
-  publisherDebugPort: number;
   sdkHome: string;
   requiredJavaVersion: number;
   passwordFile: string;
   jvmOpts: string;
   jvmDebugBaseOpts: string;
-  instanceNames: string[];
+  instances: InstanceConfig[];
+  quickstartPath?: string;
+  formsAddonPath?: string;
 }
 
 export class AemSDKConfigHelper {
@@ -21,30 +26,32 @@ export class AemSDKConfigHelper {
     if (vscode && vscode.workspace && vscode.workspace.getConfiguration) {
       const sdkConfig = vscode.workspace.getConfiguration('aemSDK');
       config = {
-        authorPort: sdkConfig.get('authorPort', 4502),
-        publisherPort: sdkConfig.get('publisherPort', 4503),
-        authorDebugPort: sdkConfig.get('authorDebugPort', 5005),
-        publisherDebugPort: sdkConfig.get('publisherDebugPort', 5006),
         sdkHome: sdkConfig.get('sdkHome', ''),
         requiredJavaVersion: sdkConfig.get('requiredJavaVersion', 11),
         passwordFile: sdkConfig.get('passwordFile', 'aem-password'),
         jvmOpts: sdkConfig.get('jvmOpts', '-Djava.awt.headless=true'),
         jvmDebugBaseOpts: sdkConfig.get('jvmDebugBaseOpts', '-Djava.awt.headless=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n'),
-        instanceNames: sdkConfig.get('instanceNames', ['author', 'publisher'])
+        instances: sdkConfig.get('instances', [
+          { name: 'author', port: 4502, debugPort: 5005, debug: false },
+          { name: 'publisher', port: 4503, debugPort: 5006, debug: false }
+        ]),
+        quickstartPath: sdkConfig.get('quickstartPath', ''),
+        formsAddonPath: sdkConfig.get('formsAddonPath', '')
       };
     } else {
       // Fallback to environment variables for CLI
       config = {
-        authorPort: Number(process.env.AEM_AUTHOR_PORT) || 4502,
-        publisherPort: Number(process.env.AEM_PUBLISHER_PORT) || 4503,
-        authorDebugPort: Number(process.env.AEM_AUTHOR_DEBUG_PORT) || 5005,
-        publisherDebugPort: Number(process.env.AEM_PUBLISHER_DEBUG_PORT) || 5006,
         sdkHome: process.env.AEM_SDK_HOME || '',
         requiredJavaVersion: Number(process.env.AEM_JAVA_VERSION) || 11,
         passwordFile: process.env.AEM_PASSWORD_FILE || 'aem-password',
         jvmOpts: process.env.AEM_JVM_OPTS || '-Djava.awt.headless=true',
         jvmDebugBaseOpts: process.env.AEM_JVM_DEBUG_BASE_OPTS || '-Djava.awt.headless=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n',
-        instanceNames: (process.env.AEM_INSTANCE_NAMES || 'author,publisher').split(',')
+        instances: process.env.AEM_SDK_INSTANCES ? JSON.parse(process.env.AEM_SDK_INSTANCES) : [
+          { name: 'author', port: 4502, debugPort: 5005, debug: false },
+          { name: 'publisher', port: 4503, debugPort: 5006, debug: false }
+        ],
+        quickstartPath: process.env.AEM_SDK_QUICKSTART_PATH || '',
+        formsAddonPath: process.env.AEM_SDK_FORMS_ADDON_PATH || ''
       };
     }
     return config as AemSDKConfig;
@@ -53,6 +60,9 @@ export class AemSDKConfigHelper {
   static validateConfig(config: AemSDKConfig) {
     if (!config.sdkHome) {
       throw new Error('AEM SDK: "sdkHome" is not set. Please set it in VS Code settings or the AEM_SDK_HOME environment variable.');
+    }
+    if (!config.instances || !Array.isArray(config.instances) || config.instances.length === 0) {
+      throw new Error('AEM SDK: "instances" is not set or empty. Please set it in VS Code settings.');
     }
   }
 }

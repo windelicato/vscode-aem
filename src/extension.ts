@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { AemMavenHelper } from './aem/maven/helper';
 import { AemSDKHelper } from './aem/sdk/helper';
+import { stop } from './aem/sdk/commands/stop';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -11,8 +12,8 @@ export function activate(context: vscode.ExtensionContext) {
 		// If invoked from the context menu, do not show the input box
 		if (!uri) {
 			input = await vscode.window.showInputBox({
-				prompt: 'aem-mvn arguments (e.g. ui.apps)',
-				placeHolder: '<module> [--build] [--all]'
+				prompt: 'aem-mvn arguments (e.g. install, build, all, skip-tests, dry-run, or a target module name)',
+				placeHolder: 'install | build | all | skip-tests | dry-run | <target module>'
 			});
 			if (input === undefined) {
 				return;
@@ -42,15 +43,10 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}
 
-		// Read settings for skipTests and dryRun
-		const config = vscode.workspace.getConfiguration('aemMavenHelper');
-		const skipTests = config.get<boolean>('skipTests', false);
-		const dryRun = config.get<boolean>('dryRun', false);
-
+		// Use AemMavenHelper to build the command and directory
 		const { command, directory, error } = AemMavenHelper.buildCommand({
 			cwd,
-			input,
-			opts: { skipTests, dryRun }
+			input: input || ''
 		});
 		if (error) {
 			vscode.window.showErrorMessage(error);
@@ -60,8 +56,6 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.window.showInformationMessage(command.replace('echo ', ''));
 			return;
 		}
-
-		// Run the command in the integrated terminal
 		const terminal = vscode.window.createTerminal({ name: 'AEM Maven' });
 		terminal.show();
 		terminal.sendText(`cd "${directory}" && ${command}`);
@@ -78,7 +72,8 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.commands.registerCommand('vscode-aem.sdk.setup', AemSDKHelper.setup),
 			vscode.commands.registerCommand('vscode-aem.sdk.start', AemSDKHelper.start),
 			vscode.commands.registerCommand('vscode-aem.sdk.status', AemSDKHelper.status),
-			vscode.commands.registerCommand('vscode-aem.sdk.log', AemSDKHelper.log)
+			vscode.commands.registerCommand('vscode-aem.sdk.log', AemSDKHelper.log),
+			vscode.commands.registerCommand('vscode-aem.sdk.stop', AemSDKHelper.stop),
 		);
 	}
 }

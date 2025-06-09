@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { XMLParser } from 'fast-xml-parser';
 import { PomModule } from './pomModule';
+import { getMavenConfig } from './config';
 
 export class AemMavenHelper {
   // Store last error statically
@@ -24,38 +25,46 @@ export class AemMavenHelper {
 
   static getError(): string | undefined { return this._error; }
 
-  static parseInputArgs(input: string, opts?: { skipTests?: boolean; dryRun?: boolean }) {
+  static parseInputArgs(input: string) {
     const args = input.trim().split(/\s+/);
     let targetModule: string | undefined;
     const flags: string[] = [];
-    let skipTestsOverride: boolean | undefined = opts?.skipTests;
-    let dryRunOverride: boolean | undefined = opts?.dryRun;
+    let skipTestsOverride: boolean | undefined = undefined;
+    let dryRunOverride: boolean | undefined = undefined;
+    let defaultGoalOverride: 'build' | 'install' | undefined = undefined;
     for (const arg of args) {
-      if (arg.startsWith('--')) {
-        if (arg === '--build' || arg === '--all') {
-          flags.push(arg);
-        } else if (arg === '--skip-tests') {
-          skipTestsOverride = true;
-        } else if (arg === '--dry-run') {
-          dryRunOverride = true;
-        }
-      } else if (!targetModule) {
+      if (arg === 'install' || arg === 'build') {
+        flags.push('--build');
+        defaultGoalOverride = arg as 'build' | 'install';
+      } else if (arg === 'all') {
+        flags.push('--all');
+      } else if (arg === 'skip-tests' || arg === '--skip-tests') {
+        skipTestsOverride = true;
+      } else if (arg === 'dry-run' || arg === '--dry-run') {
+        dryRunOverride = true;
+      } else if (!arg.startsWith('-') && !targetModule) {
         targetModule = arg;
       }
     }
+    // Merge with config here
+    const mavenConfig = getMavenConfig();
+    const skipTests = skipTestsOverride !== undefined ? skipTestsOverride : mavenConfig.skipTests;
+    const dryRun = dryRunOverride !== undefined ? dryRunOverride : mavenConfig.dryRun;
+    const defaultGoal = defaultGoalOverride !== undefined ? defaultGoalOverride : mavenConfig.defaultGoal;
     return {
       targetModule,
       flags,
       settings: {
-        skipTests: skipTestsOverride,
-        dryRun: dryRunOverride
+        skipTests,
+        dryRun,
+        defaultGoal
       }
     };
   }
 
-  static buildCommand({ cwd, input, opts }: { cwd: string, input: string, opts?: { skipTests?: boolean; dryRun?: boolean } }): { command: string, directory: string, error?: string } {
+  static buildCommand({ cwd, input }: { cwd: string, input: string }): { command: string, directory: string, error?: string } {
     this._error = undefined;
-    const { targetModule, flags, settings } = this.parseInputArgs(input, opts);
+    const { targetModule, flags, settings } = this.parseInputArgs(input);
     const modules = this.findModules(cwd);
     let target: PomModule | undefined;
     if (flags.includes('--all')) {
@@ -91,7 +100,7 @@ export class AemMavenHelper {
     let command = '';
     let directory = target.absolutePath;
     if (flags.includes('--build')) {
-      command = 'mvn clean install';
+      command = settings.defaultGoal === 'build' ? 'mvn clean install' : 'mvn install';
     } else if (target.profiles && target.profiles.length > 0) {
       command = `mvn clean install -P${target.profiles[0]}`;
     } else {

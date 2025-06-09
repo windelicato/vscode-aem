@@ -14,51 +14,83 @@
   "contributes": {
     "commands": [
       {
+        "command": "vscode-aem.aemMenu",
+        "title": "AEM"
+      },
+      {
         "command": "vscode-aem.mvn",
-        "title": "AEM Maven Helper"
-     },
+        "title": "Maven Install",
+        "category": "AEM"
+      },
       {
         "command": "vscode-aem.sdk",
-        "title": "AEM SDK Helper"
+        "title": "AEM SDK Helper",
+        "category": "AEM"
       },
       {
         "command": "vscode-aem.sdk.setup",
-        "title": "Run SDK Setup"
+        "title": "SDK Setup",
+        "category": "AEM"
       },
       {
         "command": "vscode-aem.sdk.start",
-        "title": "Start AEM Instances"
+        "title": "SDK Start",
+        "category": "AEM"
       },
       {
         "command": "vscode-aem.sdk.status",
-        "title": "Check AEM Status"
+        "title": "SDK Status",
+        "category": "AEM"
       },
       {
         "command": "vscode-aem.sdk.log",
-        "title": "Show AEM Error Log"
+        "title": "SDK Logs",
+        "category": "AEM"
+      },
+      {
+        "command": "vscode-aem.sdk.stop",
+        "title": "SDK Stop",
+        "category": "AEM"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "vscode-aem.aemMenu",
+        "label": "AEM",
+        "icon": "$(tools)"
       }
     ],
     "menus": {
       "explorer/context": [
         {
+          "submenu": "vscode-aem.aemMenu",
+          "group": "z_aem"
+        }
+      ],
+      "vscode-aem.aemMenu": [
+        {
           "command": "vscode-aem.mvn",
-          "group": "navigation@10"
+          "group": "navigation@1"
         },
         {
           "command": "vscode-aem.sdk.setup",
-          "group": "navigation@11"
+          "group": "navigation@2"
         },
         {
           "command": "vscode-aem.sdk.start",
-          "group": "navigation@11"
+          "group": "navigation@3"
         },
         {
           "command": "vscode-aem.sdk.status",
-          "group": "navigation@11"
+          "group": "navigation@4"
         },
         {
           "command": "vscode-aem.sdk.log",
-          "group": "navigation@11"
+          "group": "navigation@5"
+        },
+        {
+          "command": "vscode-aem.sdk.stop",
+          "group": "navigation@6"
         }
       ]
     },
@@ -78,35 +110,65 @@
           "description": "Show the Maven command that would be run, but do not execute it.",
           "order": 2
         },
+        "aemMavenHelper.defaultGoal": {
+          "type": "string",
+          "enum": [
+            "build",
+            "install"
+          ],
+          "default": "install",
+          "description": "Default Maven goal to use when neither 'build' nor 'install' is specified. Choose 'build' for 'mvn clean install' or 'install' for 'mvn install'.",
+          "order": 3
+        },
         "aemSDK.sdkHome": {
           "type": "string",
           "default": "",
           "description": "Path to your AEM SDK root directory (AEM_SDK_HOME). Must be set explicitly.",
           "order": 4
         },
-        "aemSDK.authorPort": {
-          "type": "number",
-          "default": 4502,
-          "description": "Port for the AEM Author instance.",
+        "aemSDK.instances": {
+          "type": "array",
+          "description": "AEM instance definitions (author, publisher, etc). Each instance can have a name, port, and debugPort.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Instance name (e.g. 'author', 'publisher')"
+              },
+              "port": {
+                "type": "number",
+                "description": "Port for this AEM instance."
+              },
+              "debugPort": {
+                "type": "number",
+                "description": "Debug port for this AEM instance."
+              },
+              "debug": {
+                "type": "boolean",
+                "description": "Enable debug mode for this AEM instance.",
+                "default": false
+              }
+            },
+            "required": [
+              "name",
+              "port",
+              "debugPort"
+            ]
+          },
+          "default": [
+            {
+              "name": "author",
+              "port": 4502,
+              "debugPort": 5005
+            },
+            {
+              "name": "publisher",
+              "port": 4503,
+              "debugPort": 5006
+            }
+          ],
           "order": 5
-        },
-        "aemSDK.publisherPort": {
-          "type": "number",
-          "default": 4503,
-          "description": "Port for the AEM Publisher instance.",
-          "order": 6
-        },
-        "aemSDK.authorDebugPort": {
-          "type": "number",
-          "default": 5005,
-          "description": "Debug port for the AEM Author instance.",
-          "order": 7
-        },
-        "aemSDK.publisherDebugPort": {
-          "type": "number",
-          "default": 5006,
-          "description": "Debug port for the AEM Publisher instance.",
-          "order": 8
         },
         "aemSDK.requiredJavaVersion": {
           "type": "number",
@@ -132,26 +194,17 @@
           "description": "JVM debug options for AEM SDK.",
           "order": 12
         },
-        "aemSDK.instanceNames": {
-          "type": "array",
-          "items": { "type": "string" },
-          "default": ["author", "publisher"],
-          "description": "AEM instance names.",
-          "order": 13
-        },
         "aemSDK.quickstartPath": {
           "type": "string",
           "default": "",
           "description": "(Advanced) Path to your AEM SDK Quickstart JAR or ZIP file. Set by the setup command. Edit in settings.json only.",
-          "order": 100,
-          "scope": "resource"
+          "order": 100
         },
         "aemSDK.formsAddonPath": {
           "type": "string",
           "default": "",
           "description": "(Advanced) Path to your AEM Forms Add-on (optional, .far or .zip). Set by the setup command. Edit in settings.json only.",
-          "order": 101,
-          "scope": "resource"
+          "order": 101
         }
       }
     }
@@ -169,11 +222,13 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vscode-test",
-    "build:cli": "esbuild src/aemMavenHelper.ts --bundle --platform=node --outfile=dist/aemMavenHelper.js --format=cjs --external:fast-xml-parser --external:fs --external:path"
+    "build:cli": "esbuild src/aem/maven/helper.ts --bundle --platform=node --outfile=dist/aem/maven/helper.js --format=cjs --external:fast-xml-parser --external:fs --external:path"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
+    "@types/mock-fs": "^4.13.4",
     "@types/node": "20.x",
+    "@types/sinon": "^17.0.4",
     "@types/vscode": "^1.100.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
@@ -181,11 +236,14 @@
     "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.25.3",
     "eslint": "^9.25.1",
+    "mock-fs": "^5.5.0",
     "npm-run-all": "^4.1.5",
+    "sinon": "^20.0.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "fast-xml-parser": "^5.2.5"
+    "fast-xml-parser": "^5.2.5",
+    "unzipper": "^0.12.3"
   },
   "publisher": "windelicato",
   "icon": "images/logo.png",

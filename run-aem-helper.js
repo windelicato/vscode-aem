@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // run-aem-helper.js
-const { AemMavenHelper } = require('./dist/aemMavenHelper'); // Use './dist/aemMavenHelper' if compiled, or './src/aemMavenHelper' with ts-node
+const { AemMavenHelper } = require('./dist/aem/maven/helper'); // Updated path for new structure
 const path = require('path');
 
 // Usage: node run-aem-helper.js "<input>" [cwd] [--skip-tests] [--dry-run]
