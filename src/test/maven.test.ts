@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import { AemMavenHelper } from '../aem/maven/helper';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import * as sinon from 'sinon';
 
 const fixtureRoot = path.resolve(__dirname, '../../src/test/fixtures');
 process.chdir(fixtureRoot);
@@ -143,6 +144,27 @@ suite('AemMavenHelper Command Construction (with AEM archetype fixtures)', () =>
 		// Should use root pom, not a separate all module
 		assert.ok(directory.endsWith('fixtures'));
 	});
+
+	test('respects mavenInstallCommand and mavenArguments from config', () => {
+		const getConfigurationStub = sinon.stub(vscode.workspace, 'getConfiguration');
+		getConfigurationStub.withArgs('aemMaven').returns({
+			get: (key: string, def: any) => {
+				if (key === 'mavenInstallCommand') { return 'verify'; }
+				if (key === 'mavenArguments') { return '--debug'; }
+				return def;
+			}
+		} as any);
+		getConfigurationStub.withArgs('aemMavenHelper').returns({
+			get: (key: string, def: any) => def
+		} as any);
+
+		const { command } = AemMavenHelper.buildCommand({
+			cwd: fixtureRoot,
+			input: 'ui.apps --build'
+		});
+		assert.ok(command.startsWith('mvn --debug verify'));
+		getConfigurationStub.restore();
+	});
 });
 
 suite('VS Code Extension Command (explorer/context)', () => {
@@ -181,6 +203,56 @@ suite('VS Code Extension Command (explorer/context)', () => {
 		// Restore
 		vscode.window.showInputBox = originalShowInputBox;
 		// Assert
+		assert.strictEqual(inputBoxShown, false, 'Input box should not be shown');
+		assert.strictEqual(usedInput, '', 'Input should be empty string');
+		assert.strictEqual(usedCwd, fakeUri.fsPath, 'cwd should be the right-clicked path');
+		assert.ok(command);
+	});
+
+	test('VS Code Extension Command (explorer/context) works with config stubs', async () => {
+		const getConfigurationStub = sinon.stub(vscode.workspace, 'getConfiguration');
+		getConfigurationStub.withArgs('aemMaven').returns({
+			get: (key: string, def: any) => {
+				if (key === 'mavenInstallCommand') { return 'clean install'; }
+				if (key === 'mavenArguments') { return ''; }
+				return def;
+			}
+		} as any);
+		getConfigurationStub.withArgs('aemMavenHelper').returns({
+			get: (key: string, def: any) => def
+		} as any);
+
+		let inputBoxShown = false;
+		const originalShowInputBox = vscode.window.showInputBox;
+		vscode.window.showInputBox = async () => {
+			inputBoxShown = true;
+			return 'should-not-be-called';
+		};
+
+		const fakeUri = vscode.Uri.file(path.join(fixtureRoot, 'ui.apps'));
+		let usedCwd = fakeUri.fsPath;
+		let usedInput = '';
+		let input: string | undefined;
+		if (!fakeUri) {
+			input = await vscode.window.showInputBox({
+				prompt: 'aem-mvn arguments (e.g. ui.apps)',
+				placeHolder: '<module> [--build] [--all]'
+			});
+			if (input === undefined) {
+				vscode.window.showInputBox = originalShowInputBox;
+				getConfigurationStub.restore();
+				return;
+			}
+		} else {
+			input = '';
+		}
+		usedInput = input;
+		const { command, directory, error } = AemMavenHelper.buildCommand({
+			cwd: usedCwd,
+			input: usedInput
+		});
+		vscode.window.showInputBox = originalShowInputBox;
+		getConfigurationStub.restore();
 		assert.strictEqual(inputBoxShown, false, 'Input box should not be shown');
 		assert.strictEqual(usedInput, '', 'Input should be empty string');
 		assert.strictEqual(usedCwd, fakeUri.fsPath, 'cwd should be the right-clicked path');

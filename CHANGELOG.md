@@ -8,6 +8,15 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 - Initial release
 
+## [0.0.3] - 2025-06-09
+- Added `AEM Scaffold` command for project/module scaffolding using the Adobe Maven archetype.
+- New settings for Maven output mode, additional Maven arguments, and custom Maven install command.
+- Improved README with clearer feature breakdown, usage, and settings documentation.
+- Enhanced SDK and Maven configuration options, including more flexible instance and JVM settings.
+- Output for Maven commands can now be shown in the Output tab or terminal.
+- Improved test coverage for new configuration and command logic.
+- Various bug fixes and documentation improvements.
+
 ## [0.0.2] - 2025-06-09
 - Major refactor for maintainability, modularity, and TypeScript best practices.
 - Robust, user-friendly AEM SDK setup, start, stop, status, and log commands with improved error handling and per-instance debug config.

@@ -4,6 +4,8 @@ export interface MavenConfig {
 	defaultGoal: 'build' | 'install';
 	skipTests: boolean;
 	dryRun: boolean;
+	mavenArguments?: string;
+	mavenInstallCommand?: string;
 }
 
 // Only import vscode if running in VS Code (dynamic import for CLI compatibility)
@@ -22,12 +24,16 @@ export function getMavenConfig(): MavenConfig {
 			defaultGoal: config.get('defaultGoal', 'install'),
 			skipTests: config.get('skipTests', false),
 			dryRun: config.get('dryRun', false),
+			mavenArguments: (vscode.workspace.getConfiguration('aemMaven').get('mavenArguments', '') || '').trim(),
+			mavenInstallCommand: (vscode.workspace.getConfiguration('aemMaven').get('mavenInstallCommand', 'clean install') || 'clean install').trim()
 		};
 	} else {
 		return {
 			defaultGoal: (process.env.AEM_MAVEN_DEFAULT_GOAL as 'build' | 'install') || 'install',
 			skipTests: process.env.AEM_MAVEN_SKIP_TESTS === 'true',
 			dryRun: process.env.AEM_MAVEN_DRY_RUN === 'true',
+			mavenArguments: (process.env.AEM_MAVEN_ARGUMENTS || '').trim(),
+			mavenInstallCommand: (process.env.AEM_MAVEN_INSTALL_COMMAND || 'clean install').trim()
 		};
 	}
 }

@@ -2,7 +2,7 @@
   "name": "vscode-aem",
   "displayName": "vscode-aem",
   "description": "AEM Local Development Toolkit",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -50,6 +50,11 @@
       {
         "command": "vscode-aem.sdk.stop",
         "title": "SDK Stop",
+        "category": "AEM"
+      },
+      {
+        "command": "vscode-aem.scaffold",
+        "title": "AEM Scaffold",
         "category": "AEM"
       }
     ],
@@ -120,11 +125,52 @@
           "description": "Default Maven goal to use when neither 'build' nor 'install' is specified. Choose 'build' for 'mvn clean install' or 'install' for 'mvn install'.",
           "order": 3
         },
+        "aemMaven.outputMode": {
+          "type": "string",
+          "enum": [
+            "terminal",
+            "output"
+          ],
+          "default": "terminal",
+          "description": "Where to show Maven command output.",
+          "enumDescriptions": [
+            "Show output in a VS Code terminal (with color support)",
+            "Show output in the Output tab (plain text, no color)"
+          ],
+          "order": 4
+        },
+        "aemMaven.mavenArguments": {
+          "type": "string",
+          "default": "",
+          "description": "Additional arguments to pass to Maven (e.g. --debug, --errors). These will be appended to the Maven command.",
+          "order": 4.5,
+          "markdownDescription": "Additional arguments to pass to Maven (e.g. `--debug`, `--errors`). These will be appended to the Maven command."
+        },
+        "aemMaven.mavenInstallCommand": {
+          "type": "string",
+          "default": "clean install",
+          "description": "The Maven goals/phase to run after 'mvn' and arguments. Default is 'clean install'. You can change this to e.g. 'install', 'verify', etc.",
+          "order": 4.6,
+          "markdownDescription": "The Maven goals/phase to run after 'mvn' and arguments. Default is `clean install`. You can change this to e.g. `install`, `verify`, etc."
+        },
+        "aemScaffold.scaffoldArgs": {
+          "type": "string",
+          "default": "-DarchetypeGroupId=com.adobe.aem \n-DarchetypeArtifactId=aem-project-archetype \n-DarchetypeVersion=53 \n-DgroupId=com.{packageName} \n-DartifactId={packageName} \n-Dversion=1.0-SNAPSHOT \n-Dpackage=com.{packageName} \n-DappId={packageName} \n-DappTitle=\"{appTitle}\" \n-DfrontendModule=general \n-DsingleCountry=y \n-DincludeExamples=n \n-DincludeErrorHandler=n \n-DincludeDispatcherConfig=n \n-DincludeCif=n \n-DincludeForms=n \n-DincludeFormsenrollment=y \n-DincludeFormscommunications=y \n-DsdkFormsVersion=latest \n-DcommerceEndpoint=https://hostname.com/graphql \n-Ddatalayer=y \n-Damp=n \n-DenableDynamicMedia=y \n-DenableSSR=n \n-DprecompiledScripts=n \n-DuiTestingFramework=cypress",
+          "description": "Arguments to pass to the AEM project archetype when scaffolding a new project. Supports variable injection: {packageName} and {appTitle} will be replaced with your input or settings.",
+          "order": 5,
+          "markdownDescription": "Arguments to pass to the AEM project archetype when scaffolding a new project. Supports variable injection: `{packageName}` and `{appTitle}` will be replaced with your input or settings."
+        },
+        "aemScaffold.archetypePluginVersion": {
+          "type": "string",
+          "default": "3.3.1",
+          "description": "Version of the Maven Archetype Plugin to use for scaffolding.",
+          "order": 6
+        },
         "aemSDK.sdkHome": {
           "type": "string",
           "default": "",
           "description": "Path to your AEM SDK root directory (AEM_SDK_HOME). Must be set explicitly.",
-          "order": 4
+          "order": 7
         },
         "aemSDK.instances": {
           "type": "array",
@@ -134,7 +180,7 @@
             "properties": {
               "name": {
                 "type": "string",
-                "description": "Instance name (e.g. 'author', 'publisher')"
+                "description": "Instance name (e.g. 'author', 'publish'). This should match the directory name for the instance."
               },
               "port": {
                 "type": "number",
@@ -163,36 +209,36 @@
               "debugPort": 5005
             },
             {
-              "name": "publisher",
+              "name": "publish",
               "port": 4503,
               "debugPort": 5006
             }
           ],
-          "order": 5
+          "order": 8
         },
         "aemSDK.requiredJavaVersion": {
           "type": "number",
           "default": 11,
           "description": "Required Java version for AEM SDK (AEM_JAVA_VERSION).",
-          "order": 9
+          "order": 10
         },
         "aemSDK.passwordFile": {
           "type": "string",
           "default": "aem-password",
           "description": "Password file for AEM admin user.",
-          "order": 10
+          "order": 11
         },
         "aemSDK.jvmOpts": {
           "type": "string",
           "default": "-Djava.awt.headless=true",
           "description": "JVM options for AEM SDK.",
-          "order": 11
+          "order": 12
         },
         "aemSDK.jvmDebugBaseOpts": {
           "type": "string",
           "default": "-Djava.awt.headless=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n",
           "description": "JVM debug options for AEM SDK.",
-          "order": 12
+          "order": 13
         },
         "aemSDK.quickstartPath": {
           "type": "string",

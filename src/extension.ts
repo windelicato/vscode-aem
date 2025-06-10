@@ -3,6 +3,7 @@ import * as path from 'path';
 import { AemMavenHelper } from './aem/maven/helper';
 import { AemSDKHelper } from './aem/sdk/helper';
 import { stop } from './aem/sdk/commands/stop';
+import { AemScaffoldHelper } from './aem/scaffold/helper';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -56,9 +57,35 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.window.showInformationMessage(command.replace('echo ', ''));
 			return;
 		}
-		const terminal = vscode.window.createTerminal({ name: 'AEM Maven' });
-		terminal.show();
-		terminal.sendText(`cd "${directory}" && ${command}`);
+		const config = vscode.workspace.getConfiguration('aemMaven');
+		const outputMode = config.get<'terminal' | 'output'>('outputMode', 'terminal');
+		if (outputMode === 'output') {
+			const outputChannel = vscode.window.createOutputChannel('AEM Maven');
+			outputChannel.show(true);
+			const cp = require('child_process').spawn(`cd "${directory}" && ${command}`, {
+				cwd: directory,
+				shell: true
+			});
+			cp.stdout.on('data', (data: Buffer) => {
+				outputChannel.append(data.toString());
+			});
+			cp.stderr.on('data', (data: Buffer) => {
+				outputChannel.append(data.toString());
+			});
+			cp.on('close', (code: number) => {
+				outputChannel.appendLine(`\nProcess exited with code ${code}`);
+				if (code !== 0) {
+					vscode.window.showErrorMessage(`AEM Maven command failed (exit code ${code})`);
+				}
+			});
+		} else {
+			let terminal = vscode.window.terminals.find(t => t.name === 'AEM Maven');
+			if (!terminal) {
+				terminal = vscode.window.createTerminal({ name: 'AEM Maven' });
+			}
+			terminal.show();
+			terminal.sendText(`cd "${directory}" && ${command}`);
+		}
 	});
 	context.subscriptions.push(aemMvnDisposable);
 
@@ -76,6 +103,12 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.commands.registerCommand('vscode-aem.sdk.stop', AemSDKHelper.stop),
 		);
 	}
+
+	// Register the AEM Scaffold command
+	const aemScaffoldDisposable = vscode.commands.registerCommand('vscode-aem.scaffold', async () => {
+		await AemScaffoldHelper.runScaffold();
+	});
+	context.subscriptions.push(aemScaffoldDisposable);
 }
 
 // This method is called when your extension is deactivated

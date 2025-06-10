@@ -96,13 +96,19 @@ export class AemMavenHelper {
     }
     let command = '';
     let directory = target.absolutePath;
+
+    // Get mavenArguments and mavenInstallCommand from config
+    const mavenConfig = getMavenConfig();
+    let mavenArguments = mavenConfig.mavenArguments ? mavenConfig.mavenArguments.trim() : '';
+    let mavenInstallCommand = mavenConfig.mavenInstallCommand ? mavenConfig.mavenInstallCommand.trim() : 'clean install';
+    const mavenBase = `mvn${mavenArguments ? ' ' + mavenArguments : ''}`;
+
     if ((flags.includes('--build') || settings.defaultGoal === 'build') && !flags.includes('--install')) {
-      command = 'mvn clean install';
+      command = `${mavenBase} ${mavenInstallCommand}`;
     } else if (target.profiles && target.profiles.length > 0) {
-      command = `mvn clean install -P${target.profiles[0]}`;
+      command = `${mavenBase} ${mavenInstallCommand} -P${target.profiles[0]}`;
     } else {
-      this.showError('No Maven profiles found for this module. Please check your pom.xml.');
-      return { command: '', directory, error: this._error };
+      command = `${mavenBase} ${mavenInstallCommand}`;
     }
     if (settings.skipTests) {
       command += ' -DskipTests';
