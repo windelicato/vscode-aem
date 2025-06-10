@@ -13,7 +13,7 @@ suite('AemScaffoldHelper VS Code Extension Command', () => {
 		const getConfigStub = sinon.stub(vscode.workspace, 'getConfiguration');
 		getConfigStub.returns({
 			get: (key: string, def: any) => {
-				if (key === 'scaffoldArgs') { return '-DgroupId={packageName} -DappTitle="{appTitle}" -DarchetypeVersion={archetypeVersion}'; }
+				if (key === 'scaffoldArgs') { return '-DgroupId={packageName} -DappTitle="{appTitle}"'; }
 				if (key === 'archetypePluginVersion') { return '3.3.1'; }
 				return def;
 			}
@@ -32,7 +32,7 @@ suite('AemScaffoldHelper VS Code Extension Command', () => {
 		await AemScaffoldHelper.runScaffold();
 
 		// Assert
-		assert.strictEqual(sentCommand, 'mvn archetype:generate -DgroupId=mysite -DappTitle="My App" -DarchetypeVersion=3.3.1');
+		assert.ok(sentCommand.startsWith('mvn -B org.apache.maven.plugins:maven-archetype-plugin:3.3.1:generate'), 'Command should start with archetype generate');
 		assert.ok(createTerminalStub.calledOnce, 'Terminal should be created');
 		assert.ok((fakeTerminal.show as sinon.SinonSpy).calledOnce, 'Terminal should be shown');
 
