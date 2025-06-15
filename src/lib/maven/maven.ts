@@ -116,6 +116,7 @@ export async function runCommand(
     execSync(command, {
       cwd: path.resolve(runCwd),
       stdio: "inherit",
+      shell: process.platform === "win32" ? "cmd.exe" : "/bin/sh",
     });
   } catch (error) {
     console.error("Error running Maven command:", error);

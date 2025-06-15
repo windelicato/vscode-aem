@@ -38,7 +38,7 @@ export const ARGUMENTS: ArgDefinitions = {
   },
 };
 
-export async function setup(
+export async function runCommand(
   config: SdkConfig,
   input: string = "",
   progress?: (msg: string) => void

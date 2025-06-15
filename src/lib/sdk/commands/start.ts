@@ -2,6 +2,8 @@ import { SdkConfig } from "../config";
 import * as fs from "fs";
 import { spawn } from "child_process";
 import { parseArgs, ArgType, ArgDefinitions } from "../../utils/argParser";
+import * as path from "path";
+import * as os from "os";
 
 export const ARGUMENTS: ArgDefinitions = {
   instance: {
@@ -18,18 +20,27 @@ export const ARGUMENTS: ArgDefinitions = {
   },
 };
 
-export async function start(config: SdkConfig, input: string = "") {
+export async function runCommand(
+  config: SdkConfig,
+  input: string = "",
+  onProgress?: (instance: string, msg: string, done?: boolean) => void
+) {
   const opts = parseArgs(input, ARGUMENTS);
 
   // Optionally filter instances
   const instances = opts.instance
     ? config.instances.filter((i) => i.name === opts.instance)
     : config.instances;
+  const startupPromises: Promise<void>[] = [];
   for (const instance of instances) {
-    const instanceDir = `${config.sdkHome}/${instance.name}`;
-    const startScript = `${instanceDir}/crx-quickstart/bin/start`;
-    const pidFile = `${instanceDir}/crx-quickstart/conf/cq.pid`;
-    const passwordFilePath = `${instanceDir}/${config.passwordFile}`;
+    const instanceDir = path.join(config.sdkHome, instance.name);
+    const quickstartBin = path.join(instanceDir, "crx-quickstart", "bin");
+    const startScript = path.join(
+      quickstartBin,
+      os.platform() === "win32" ? "start.bat" : "start"
+    );
+    const pidFile = path.join(instanceDir, "crx-quickstart", "conf", "cq.pid");
+    const passwordFilePath = path.join(instanceDir, config.passwordFile);
     const isDebug = opts.debug || instance.debug === true;
     const jvmOpts = isDebug
       ? `${config.jvmOpts} ${config.jvmDebugBaseOpts}`
@@ -43,26 +54,119 @@ export async function start(config: SdkConfig, input: string = "") {
         `[${instance.name}] Created password file: ${passwordFilePath}`
       );
     }
-    if (fs.existsSync(startScript) && fs.statSync(startScript).mode & 0o111) {
-      const proc = spawn("./start", [], {
-        cwd: `${instanceDir}/crx-quickstart/bin`,
-        stdio: "inherit",
-        shell: false,
-      });
-      proc.on("close", (code) => {
+    const isWin = os.platform() === "win32";
+    const scriptExists = fs.existsSync(startScript);
+    const isExecutable =
+      scriptExists && (!isWin ? fs.statSync(startScript).mode & 0o111 : true);
+    let child;
+    if (scriptExists && isExecutable) {
+      // Use start script
+      child = spawn(
+        isWin ? "cmd.exe" : os.platform() === "darwin" ? "sh" : "./start",
+        isWin
+          ? ["/c", "start.bat"]
+          : os.platform() === "darwin"
+          ? [startScript]
+          : [],
+        {
+          cwd: quickstartBin,
+          detached: false,
+          stdio: "inherit",
+          shell: isWin,
+        }
+      );
+      child.on("close", (code) => {
         console.log(`[${instance.name}] Start script exited with code ${code}`);
       });
+      child.unref();
+      if (onProgress) {
+        onProgress(instance.name, `Started with PID: ${child.pid}`);
+      }
     } else {
       // Fallback to java -jar
       const jar = `aem-${instance.name}-p${instance.port}.jar`;
-      const jarPath = `${instanceDir}/${jar}`;
-      const proc = spawn("java", ["-jar", jarPath, jvmOpts], {
+      const jarPath = path.join(instanceDir, jar);
+      const javaArgs = jvmOpts
+        ? jvmOpts.split(" ").concat(["-jar", jarPath])
+        : ["-jar", jarPath];
+      child = spawn("java", javaArgs, {
         cwd: instanceDir,
+        detached: false,
         stdio: "inherit",
+        shell: isWin,
       });
-      proc.on("close", (code) => {
+      child.on("close", (code) => {
         console.log(`[${instance.name}] java -jar exited with code ${code}`);
       });
+      child.unref();
+      if (onProgress) {
+        onProgress(instance.name, `Started with PID: ${child.pid}`);
+      }
+      // Ensure conf dir exists and write pid file
+      const confDir = `${instanceDir}/crx-quickstart/conf`;
+      if (!require("fs").existsSync(confDir)) {
+        require("fs").mkdirSync(confDir, { recursive: true });
+      }
+      require("fs").writeFileSync(pidFile, String(child.pid));
+      console.log(`[${instance.name}] PID file written: ${pidFile}`);
     }
+    // Progress spinner: watch stdout.log for "Startup completed" after start
+    if (onProgress) {
+      const logDir = path.join(instanceDir, "crx-quickstart", "logs");
+      const stdoutLog = path.join(logDir, "stdout.log");
+      const startTime = Date.now();
+      startupPromises.push(
+        new Promise((resolve) => {
+          if (!fs.existsSync(stdoutLog)) {
+            onProgress(
+              instance.name,
+              "Waiting for stdout.log to be created..."
+            );
+          }
+          const { spawn } = require("child_process");
+          const tailCmd = process.platform === "win32" ? "powershell" : "tail";
+          const tailArgs =
+            process.platform === "win32"
+              ? [
+                  "-NoProfile",
+                  "-NoLogo",
+                  "-ExecutionPolicy",
+                  "Bypass",
+                  "-Command",
+                  `Get-Content -Path '${stdoutLog}' -Wait -Tail 10`,
+                ]
+              : ["-F", stdoutLog];
+          const tail = spawn(tailCmd, tailArgs, {
+            shell: process.platform === "win32",
+          });
+          tail.stdout.on("data", (data: Buffer) => {
+            const lines = data.toString().split(/\r?\n/);
+            for (const line of lines) {
+              if (!line) {
+                continue;
+              }
+              // Parse timestamp from log line
+              const match = line.match(
+                /^(\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}:\d{2}\.\d{3}) \*INFO \* \[main\] Startup completed/
+              );
+              if (match) {
+                // Optionally, check timestamp is after startTime (if log format allows)
+                onProgress(instance.name, "Startup completed!", true);
+                tail.kill();
+                resolve();
+                return;
+              }
+              onProgress(instance.name, line);
+            }
+          });
+          tail.stderr.on("data", (data: Buffer) => {
+            onProgress(instance.name, data.toString(), true);
+          });
+        })
+      );
+    }
+  }
+  if (startupPromises.length > 0) {
+    await Promise.all(startupPromises);
   }
 }

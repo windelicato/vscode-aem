@@ -5,7 +5,11 @@ import { getCommand as getMavenCommand } from "../lib/maven/maven";
 import { AemSDKHelper } from "./aem/sdk/helper";
 import { loadConfig } from "../lib/config/config";
 import { getCommand as getScaffoldCommand } from "../lib/scaffold/scaffold";
-import { setup as sdkSetup } from "../lib/sdk/commands/setup";
+import { runCommand as runSetupCommand } from "../lib/sdk/commands/setup";
+import { runCommand as runStartCommand } from "../lib/sdk/commands/start";
+import { runCommand as runStatusCommand } from "../lib/sdk/commands/status";
+import { runCommand as runLogCommand } from "../lib/sdk/commands/log";
+import { runCommand as runStopCommand } from "../lib/sdk/commands/stop";
 
 // Global output channel and terminal
 let globalOutputChannel: vscode.OutputChannel | undefined;
@@ -231,7 +235,7 @@ export function activate(context: vscode.ExtensionContext) {
             cancellable: false,
           },
           async (progress) => {
-            await sdkSetup(getFullConfig().sdk, input, (msg: string) =>
+            await runSetupCommand(getFullConfig().sdk, input, (msg: string) =>
               progress.report({ message: msg })
             );
           }
@@ -240,14 +244,108 @@ export function activate(context: vscode.ExtensionContext) {
 
       vscode.commands.registerCommand(
         "vscode-aem.sdk.start",
-        AemSDKHelper.start
+        async (uri?: vscode.Uri) => {
+          const libConfig = getFullConfig();
+          vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: "Starting AEM SDK instance(s)...",
+              cancellable: false,
+            },
+            async (progress) => {
+              await runStartCommand(
+                libConfig.sdk,
+                "",
+                (instance, msg, done) => {
+                  progress.report({ message: `[${instance}] ${msg}` });
+                }
+              );
+            }
+          );
+        }
       ),
       vscode.commands.registerCommand(
         "vscode-aem.sdk.status",
-        AemSDKHelper.status
+        async (uri?: vscode.Uri) => {
+          const libConfig = getFullConfig();
+          if (globalOutputChannel) {
+            globalOutputChannel.show(true);
+            globalOutputChannel.clear();
+            globalOutputChannel.appendLine("AEM SDK Instance Status:");
+          }
+          await runStatusCommand(libConfig.sdk, "", (instance, status) => {
+            if (globalOutputChannel) {
+              globalOutputChannel.appendLine(`[${instance}] ${status}`);
+            }
+          });
+        }
       ),
-      vscode.commands.registerCommand("vscode-aem.sdk.log", AemSDKHelper.log),
-      vscode.commands.registerCommand("vscode-aem.sdk.stop", AemSDKHelper.stop)
+      vscode.commands.registerCommand(
+        "vscode-aem.sdk.log",
+        async (uri?: vscode.Uri) => {
+          const libConfig = getFullConfig();
+          // Prompt user for log file name
+          const logFileName = await vscode.window.showInputBox({
+            prompt:
+              "Enter the log file name to tail (e.g. error.log, stdout.log, request.log)",
+            placeHolder: "error.log",
+            value: "error.log",
+            ignoreFocusOut: true,
+          });
+          if (!logFileName) {
+            vscode.window.showErrorMessage("No log file name provided.");
+            return;
+          }
+          // Prompt user for instance name (optional)
+          const instanceName = await vscode.window.showInputBox({
+            prompt:
+              "Enter the instance name to tail (optional, e.g. author, publish)",
+            placeHolder: "author | publish | (leave blank for all)",
+            ignoreFocusOut: true,
+          });
+          // Use a dedicated output channel for each log file
+          const logOutputChannel = vscode.window.createOutputChannel(
+            `AEM Log: [${logFileName}]`
+          );
+          logOutputChannel.show(true);
+          logOutputChannel.clear();
+          logOutputChannel.appendLine(
+            `Tailing log file: ${logFileName}` +
+              (instanceName
+                ? ` for instance: ${instanceName}`
+                : " for all instances")
+          );
+          let inputArgs = `--logFileName ${logFileName}`;
+          if (instanceName) {
+            inputArgs += ` --instance ${instanceName}`;
+          }
+          await runLogCommand(
+            libConfig.sdk,
+            inputArgs,
+            (instance, data, isError) => {
+              logOutputChannel.append(`[${instance}] ${data}`);
+            }
+          );
+        }
+      ),
+      vscode.commands.registerCommand(
+        "vscode-aem.sdk.stop",
+        async (uri?: vscode.Uri) => {
+          const libConfig = getFullConfig();
+          vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: "Stopping AEM SDK instance(s)...",
+              cancellable: false,
+            },
+            async (progress) => {
+              await runStopCommand(libConfig.sdk, "", (instance, msg, done) => {
+                progress.report({ message: `[${instance}] ${msg}` });
+              });
+            }
+          );
+        }
+      )
     );
   }
 
