@@ -3,18 +3,30 @@ import type { MavenModule } from "./module/module";
 import { MavenProject } from "./project/project";
 import { execSync } from "child_process";
 import path from "path";
+import { parseArgs, ArgType, ArgDefinitions } from "../utils/argParser";
 
-/**
- * Options for running a Maven command.
- * @property module - The module name or path to run Maven in.
- * @property dryRun - If true, prints the command instead of executing it.
- * @property skipTests - If true, skips tests during Maven build.
- */
-export type MavenOpts = {
-  targetModule?: string;
-  skipTests?: boolean;
-  dryRun?: boolean;
-  build?: boolean;
+const ARGUMENTS: ArgDefinitions = {
+  skipTests: {
+    type: ArgType.Flag,
+    aliases: ["skip-tests", "--skip-tests", "-s"],
+    description: "Skip tests during Maven build",
+    default: false,
+  },
+  dryRun: {
+    type: ArgType.Flag,
+    aliases: ["dry-run", "--dry-run", "-d"],
+    description: "Run Maven in dry-run mode",
+    default: false,
+  },
+  build: {
+    type: ArgType.Flag,
+    aliases: ["build", "--build", "-b"],
+    description: "Use the build goal instead of the default",
+  },
+  module: {
+    type: ArgType.Positional,
+    description: "Target Maven module (positional argument)",
+  },
 };
 
 /**
@@ -30,7 +42,10 @@ export async function getCommand(
   input: string = "",
   cwd?: string
 ) {
-  const opts = parseInput(input);
+  const opts = parseArgs(input, ARGUMENTS);
+  if (opts.errors.length > 0) {
+    throw new Error(`Argument parsing errors: ${opts.errors.join(", ")}`);
+  }
   // Use provided cwd or default to process.cwd()
   const currentDirectory = cwd ? path.resolve(cwd) : process.cwd();
   const project = await MavenProject.load(currentDirectory);
@@ -43,8 +58,12 @@ export async function getCommand(
 
   // Prefer explicit module, else resolve by cwd, else use root
   let target: MavenModule | undefined;
-  if (opts.targetModule) {
-    target = project.getModule(opts.targetModule);
+  if (opts.module) {
+    if (opts.module === "all") {
+      target = project.getRootModule();
+    } else {
+      target = project.getModule(opts.module as string);
+    }
   } else {
     // Use the new helper to find the module whose path is the parent of cwd
     target = project.findModuleByPath(currentDirectory);
@@ -101,24 +120,4 @@ export async function runCommand(
   } catch (error) {
     console.error("Error running Maven command:", error);
   }
-}
-
-export function parseInput(input: string): MavenOpts {
-  const args = input.trim().split(/\s+/);
-  let skipTests = false;
-  let dryRun = false;
-  let build = false;
-  let targetModule: string | undefined = undefined;
-  for (const arg of args) {
-    if (/^--?skip-tests$/.test(arg) || arg === "-s" || arg === "skip-tests") {
-      skipTests = true;
-    } else if (/^--?dry-run$/.test(arg) || arg === "-d" || arg === "dry-run") {
-      dryRun = true;
-    } else if (/^--?build$/.test(arg) || arg === "-b" || arg === "build") {
-      build = true;
-    } else if (!arg.startsWith("-") && !targetModule) {
-      targetModule = arg;
-    }
-  }
-  return { skipTests, dryRun, build, targetModule };
 }

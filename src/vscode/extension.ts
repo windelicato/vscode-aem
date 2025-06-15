@@ -67,7 +67,12 @@ export function activate(context: vscode.ExtensionContext) {
       // Use the right-clicked file/folder as cwd if available
       let cwd = workspaceRoot;
       if (uri && uri.fsPath) {
-        cwd = uri.fsPath;
+        const stat = await vscode.workspace.fs.stat(uri);
+        if (stat.type & vscode.FileType.Directory) {
+          cwd = uri.fsPath;
+        } else {
+          cwd = path.dirname(uri.fsPath);
+        }
       } else {
         const activeEditor = vscode.window.activeTextEditor;
         if (activeEditor) {
