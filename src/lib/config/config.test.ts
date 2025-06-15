@@ -1,7 +1,8 @@
 import {
   configSchema,
-  loadConfigAsync,
-  loadConfigSync,
+  loadConfig,
+  loadConfigFile,
+  loadConfigFileAsync,
   mergeConfig,
   resolveSchema,
 } from "./config";
@@ -33,15 +34,14 @@ suite("config system", () => {
   });
 
   test("should resolve config with defaults when no file exists", () => {
-    const config = loadConfigSync("nonexistent.aemrc.json");
+    const config = loadConfig("nonexistent.aemrc.json");
     assert.ok(config.maven.hasOwnProperty("skipTests"));
     assert.ok(config.scaffold.hasOwnProperty("scaffoldArgs"));
     assert.ok(config.sdk.hasOwnProperty("sdkHome"));
   });
 
-  test("should resolve config from file (sync)", () => {
-    fs.writeFileSync(tempConfigPath, JSON.stringify(sampleConfig));
-    const config = loadConfigSync(tempConfigPath);
+  test("should resolve config from object (loadConfig)", () => {
+    const config = loadConfig(sampleConfig);
     assert.strictEqual(config.maven.skipTests, true);
     assert.strictEqual(config.maven.mavenArguments, "-X");
     assert.strictEqual(config.scaffold.scaffoldArgs, "--foo");
@@ -49,9 +49,19 @@ suite("config system", () => {
     assert.strictEqual(config.sdk.requiredJavaVersion, 17);
   });
 
-  test("should resolve config from file (async)", async () => {
+  test("should resolve config from file (sync, loadConfigFile)", () => {
     fs.writeFileSync(tempConfigPath, JSON.stringify(sampleConfig));
-    const config = await loadConfigAsync(tempConfigPath);
+    const config = loadConfigFile(tempConfigPath);
+    assert.strictEqual(config.maven.skipTests, true);
+    assert.strictEqual(config.maven.mavenArguments, "-X");
+    assert.strictEqual(config.scaffold.scaffoldArgs, "--foo");
+    assert.strictEqual(config.sdk.sdkHome, "/tmp/sdk");
+    assert.strictEqual(config.sdk.requiredJavaVersion, 17);
+  });
+
+  test("should resolve config from file (async, loadConfigFileAsync)", async () => {
+    fs.writeFileSync(tempConfigPath, JSON.stringify(sampleConfig));
+    const config = await loadConfigFileAsync(tempConfigPath);
     assert.strictEqual(config.maven.skipTests, true);
     assert.strictEqual(config.maven.mavenArguments, "-X");
     assert.strictEqual(config.scaffold.scaffoldArgs, "--foo");
@@ -88,14 +98,14 @@ suite("config system", () => {
     assert.ok(resolved.sdk.hasOwnProperty("sdkHome"));
   });
 
-  test("should loadConfigSync with windows paths", () => {
+  test("should loadConfigFile with windows paths", () => {
     const winConfig = {
       maven: { skipTests: true, mavenArguments: "-X" },
       scaffold: { scaffoldArgs: "--foo" },
       sdk: { sdkHome: "C:/tmp/sdk", requiredJavaVersion: 17 },
     };
     fs.writeFileSync(tempConfigPath, JSON.stringify(winConfig));
-    const config = loadConfigSync(tempConfigPath);
+    const config = loadConfigFile(tempConfigPath);
     assert.strictEqual(config.maven.skipTests, true);
     assert.strictEqual(config.maven.mavenArguments, "-X");
     assert.strictEqual(config.scaffold.scaffoldArgs, "--foo");
@@ -103,14 +113,14 @@ suite("config system", () => {
     assert.strictEqual(config.sdk.requiredJavaVersion, 17);
   });
 
-  test("should loadConfigAsync with windows paths", async () => {
+  test("should loadConfigFileAsync with windows paths", async () => {
     const winConfig = {
       maven: { skipTests: true, mavenArguments: "-X" },
       scaffold: { scaffoldArgs: "--foo" },
       sdk: { sdkHome: "C:/tmp/sdk", requiredJavaVersion: 17 },
     };
     fs.writeFileSync(tempConfigPath, JSON.stringify(winConfig));
-    const config = await loadConfigAsync(tempConfigPath);
+    const config = await loadConfigFileAsync(tempConfigPath);
     assert.strictEqual(config.maven.skipTests, true);
     assert.strictEqual(config.maven.mavenArguments, "-X");
     assert.strictEqual(config.scaffold.scaffoldArgs, "--foo");
@@ -135,7 +145,7 @@ describe("windows path compatibility", () => {
 
   it("should resolve config from file (sync) with windows path", () => {
     fs.writeFileSync(winConfigPath, JSON.stringify(winSampleConfig));
-    const config = loadConfigSync(winConfigPath);
+    const config = loadConfigFile(winConfigPath);
     assert.strictEqual(config.maven.skipTests, true);
     assert.strictEqual(config.maven.mavenArguments, "-X");
     assert.strictEqual(config.scaffold.scaffoldArgs, "--foo");
@@ -145,7 +155,7 @@ describe("windows path compatibility", () => {
 
   it("should resolve config from file (async) with windows path", async () => {
     fs.writeFileSync(winConfigPath, JSON.stringify(winSampleConfig));
-    const config = await loadConfigAsync(winConfigPath);
+    const config = await loadConfigFileAsync(winConfigPath);
     assert.strictEqual(config.maven.skipTests, true);
     assert.strictEqual(config.maven.mavenArguments, "-X");
     assert.strictEqual(config.scaffold.scaffoldArgs, "--foo");

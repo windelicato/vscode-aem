@@ -1,8 +1,5 @@
 import * as fs from "fs/promises";
 import { MavenModule } from "../module/module";
-import { parsePomSync } from "../module/parser";
-import { resolveProfiles } from "../module/resolver";
-import type { PomXml } from "../module/types";
 import type { MavenProjectData } from "./types";
 import path from "path";
 
@@ -15,107 +12,116 @@ export class MavenProject implements MavenProjectData {
    * Map of module name or absolute path to MavenModule instance.
    */
   modules: Record<string, MavenModule>;
-  /**
-   * The root Maven module of the project.
-   */
-  root: MavenModule;
 
   /**
-   * Constructs a MavenProject from the root module and a list of modules.
-   * @param root The root Maven module.
+   * Constructs a MavenProject from a list of modules.
    * @param modules All modules in the project (including root).
    */
-  constructor(root: MavenModule, modules: MavenModule[]) {
-    this.root = root;
+  private constructor(modules: MavenModule[]) {
     this.modules = {};
     for (const mod of modules) {
       this.modules[mod.name] = mod;
-      this.modules[mod.absolutePath] = mod;
     }
   }
 
   /**
-   * Gets a Maven module by name or absolute path.
-   * @param target The module name or absolute path.
-   * @returns The MavenModule, or undefined if not found.
+   * Returns the root Maven module (where parentPom === null).
    */
-  get(target: string): MavenModule | undefined {
-    return this.modules[target];
+  getRootModule(): MavenModule | undefined {
+    return this.getAll().find((mod) => mod.parentPom === null);
   }
 
   /**
-   * Gets all unique Maven modules in the project.
+   * Gets a Maven module by name.
+   * @param name The module name.
+   * @returns The MavenModule, or undefined if not found.
+   */
+  getModule(name: string): MavenModule | undefined {
+    return this.modules[name];
+  }
+
+  /**
+   * Gets all Maven modules in the project.
    * @returns An array of MavenModule instances.
    */
   getAll(): MavenModule[] {
-    return Object.values(this.modules).filter(
-      (v, i, arr) => arr.indexOf(v) === i
-    );
+    return Object.values(this.modules);
   }
 
   /**
-   * Finds and loads a Maven project by searching for a pom.xml up the directory tree.
-   * @param rootDir The directory to start searching from.
+   * Loads a Maven project by searching for a pom.xml up the directory tree.
+   * @param dirPath The directory to start searching from.
    * @returns A MavenProject instance if found, or null if not found.
    */
-  static async findProject(rootDir: string): Promise<MavenProject | null> {
-    let dir = path.resolve(rootDir);
+  static async load(dirPath: string): Promise<MavenProject | null> {
+    let dir = path.resolve(dirPath);
     const rootPath = path.parse(dir).root;
     while (dir !== rootPath) {
       const pomPath = path.join(dir, "pom.xml");
-      const parentPomPath = path.join(dir, "..", "pom.xml");
       try {
         await fs.access(pomPath);
-        const pom: PomXml = parsePomSync(pomPath);
-        const parentPom: PomXml = parsePomSync(parentPomPath);
-        if (pom.project && pom.project.modules) {
-          const rootModule = MavenModule.fromData({
-            absolutePath: dir,
-            relativePath: ".",
-            name: path.basename(dir),
-            artifactId: pom.project.artifactId ?? path.basename(dir),
-            profiles: resolveProfiles(pom, parentPom, true),
-            isRoot: true,
-          });
-          let moduleNames = pom.project.modules.module;
-          if (typeof moduleNames === "string") {
-            moduleNames = [moduleNames];
-          }
-          const childModules: MavenModule[] = [];
-          if (Array.isArray(moduleNames)) {
-            const children = await Promise.all(
-              moduleNames.map(async (modName: string) => {
-                const absPath = path.join(dir, modName);
-                const childPom: PomXml = parsePomSync(
-                  path.join(absPath, "pom.xml")
-                );
-                const childParentPom: PomXml = parsePomSync(
-                  path.join(absPath, "..", "pom.xml")
-                );
-                return MavenModule.fromData({
-                  absolutePath: absPath,
-                  relativePath: ".",
-                  name: path.basename(absPath),
-                  artifactId:
-                    childPom.project?.artifactId ?? path.basename(absPath),
-                  profiles: resolveProfiles(childPom, childParentPom, false),
-                  isRoot: false,
-                });
-              })
-            );
-            children.forEach((mod: unknown) => {
-              if (mod) {
-                childModules.push(mod as MavenModule);
-              }
-            });
-          }
-          return new MavenProject(rootModule, [rootModule, ...childModules]);
+        const rootModule = await MavenModule.load(dir);
+        if (!rootModule) {
+          break;
         }
+
+        // Extract child module names from the parsed pom
+        const moduleNames: string[] = (() => {
+          const pom = rootModule.pom;
+          if (pom && pom.project && pom.project.modules) {
+            const mods = pom.project.modules.module;
+            if (Array.isArray(mods)) {
+              return mods;
+            }
+            if (typeof mods === "string") {
+              return [mods];
+            }
+          }
+          return [];
+        })();
+
+        // Load all child modules
+        let childModules: MavenModule[] = [];
+        if (moduleNames.length > 0) {
+          const children = await Promise.all(
+            moduleNames.map(async (modName) =>
+              MavenModule.load(path.join(dir, modName))
+            )
+          );
+          childModules = children.filter((mod): mod is MavenModule => !!mod);
+        }
+
+        // Return the MavenProject with root and children
+        return new MavenProject([rootModule, ...childModules]);
       } catch {
-        // ignore
+        // ignore and continue up
       }
       dir = path.dirname(dir);
     }
     return null;
+  }
+
+  /**
+   * Finds the deepest module whose absolutePath is a parent of the given path.
+   * @param searchPath The path to search for.
+   * @returns The deepest MavenModule or undefined.
+   */
+  findModuleByPath(searchPath: string): MavenModule | undefined {
+    const resolved = path.resolve(searchPath);
+    return this.getAll().reduce(
+      (best: MavenModule | undefined, mod: MavenModule) => {
+        const modPath = path.resolve(mod.absolutePath);
+        if (resolved.startsWith(modPath)) {
+          if (
+            !best ||
+            modPath.length > path.resolve(best.absolutePath).length
+          ) {
+            return mod;
+          }
+        }
+        return best;
+      },
+      undefined
+    );
   }
 }

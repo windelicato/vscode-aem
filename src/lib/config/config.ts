@@ -115,11 +115,20 @@ function mergeValue<V>(baseVal: V, overrideVal: unknown): V {
 }
 
 /**
+ * Resolves config from a JSON object.
+ * @param json - The raw config object.
+ * @returns The resolved config object.
+ */
+export function loadConfig(json: unknown): ResolvedConfig {
+  return resolveSchema(json);
+}
+
+/**
  * Loads and resolves config synchronously from a file.
  * @param configPath - Path to the config file (default: .aemrc.json).
  * @returns The resolved config object.
  */
-export function loadConfigSync(configPath = ".aemrc.json") {
+export function loadConfigFile(configPath = ".aemrc.json") {
   const configFilePath =
     typeof process !== "undefined"
       ? path.resolve(process.cwd(), configPath)
@@ -128,8 +137,7 @@ export function loadConfigSync(configPath = ".aemrc.json") {
     configFilePath && fs.existsSync(configFilePath)
       ? JSON.parse(fs.readFileSync(configFilePath, "utf-8"))
       : {};
-
-  return resolveSchema(fileData);
+  return loadConfig(fileData);
 }
 
 /**
@@ -137,7 +145,7 @@ export function loadConfigSync(configPath = ".aemrc.json") {
  * @param configPath - Path to the config file (default: .aemrc.json).
  * @returns The resolved config object (Promise).
  */
-export async function loadConfigAsync(configPath = ".aemrc.json") {
+export async function loadConfigFileAsync(configPath = ".aemrc.json") {
   const configFilePath =
     typeof process !== "undefined"
       ? path.resolve(process.cwd(), configPath)
@@ -151,7 +159,7 @@ export async function loadConfigAsync(configPath = ".aemrc.json") {
       // ignore missing file
     }
   }
-  return resolveSchema(fileData);
+  return loadConfig(fileData);
 }
 
 /**
@@ -178,7 +186,7 @@ export function mergeConfig<T>(base: T, override: Partial<T>): T {
  * @param fileData - The raw config file data.
  * @returns The resolved config object.
  */
-export function resolveSchema(fileData: unknown) {
+export function resolveSchema(fileData: unknown): ResolvedConfig {
   return {
     maven: resolveSection(mavenSchema, getSection(fileData, "maven")),
     scaffold: resolveSection(scaffoldSchema, getSection(fileData, "scaffold")),

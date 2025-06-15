@@ -1,4 +1,4 @@
-import { runMaven } from "./maven";
+import { getCommand, runCommand } from "./maven";
 import { MavenProject } from "./project/project";
 import assert from "assert";
 import sinon from "sinon";
@@ -7,7 +7,7 @@ import type { ResolvedConfig } from "../config/config";
 // Mock dependencies
 // We'll use sinon for spies and stubs
 
-describe("runMaven", () => {
+describe("runCommand/getCommand", () => {
   let mockProject: any;
   let config: ResolvedConfig;
   let consoleLogStub: sinon.SinonStub;
@@ -15,12 +15,13 @@ describe("runMaven", () => {
 
   beforeEach(() => {
     mockProject = {
-      get: sinon.stub(),
+      getModule: sinon.stub(),
+      findModuleByPath: sinon.stub(),
       getAll: sinon.stub(),
       root: { absolutePath: "/root", profiles: ["default"] },
     };
     sinon.restore();
-    sinon.stub(MavenProject, "findProject").resolves(mockProject);
+    sinon.stub(MavenProject, "load").resolves(mockProject);
     config = {
       maven: {
         mavenInstallCommand: "clean install",
@@ -58,50 +59,45 @@ describe("runMaven", () => {
   });
 
   it("runs maven in dry run mode with explicit module", async () => {
-    mockProject.get.returns({
+    mockProject.getModule.returns({
       absolutePath: "/mod",
       profiles: ["profile1"],
     });
-    await runMaven(config, { module: "/mod", dryRun: true });
-    assert(consoleLogStub.calledWithMatch("[DRY RUN]"));
+    const result = await getCommand(config, "--dry-run /mod");
+    assert(result && result.command.includes("[DRY RUN]"));
   });
 
   it("runs maven in dry run mode with cwd module resolution", async () => {
-    mockProject.get.returns(undefined);
-    mockProject.getAll.returns([
-      { absolutePath: "/root", profiles: ["profile1"] },
-      { absolutePath: "/root/mod", profiles: ["profile2"] },
-    ]);
-    await runMaven(config, { dryRun: true });
-    assert(consoleLogStub.calledWithMatch("[DRY RUN]"));
+    mockProject.getModule.returns(undefined);
+    mockProject.findModuleByPath.returns({
+      absolutePath: "/root/mod",
+      profiles: ["profile2"],
+    });
+    const result = await getCommand(config, "--dry-run");
+    assert(result && result.command.includes("[DRY RUN]"));
   });
 
   it("prints error if no project found", async () => {
-    sinon.stub(MavenProject, "findProject").resolves(null);
-    await runMaven(config, { dryRun: true });
-    assert(consoleErrorStub.calledWithMatch("Could not find a Maven project"));
+    (MavenProject.load as sinon.SinonStub).resolves(null);
+    const result = await getCommand(config, "--dry-run");
+    assert.strictEqual(result, undefined);
   });
 
   it("prints error if no target module found", async () => {
-    mockProject.get.returns(undefined);
-    mockProject.getAll.returns([]);
-    await runMaven(config, { module: "/notfound", dryRun: true });
-    assert(
-      consoleErrorStub.calledWithMatch(
-        "Could not determine target Maven module"
-      )
-    );
+    mockProject.getModule.returns(undefined);
+    mockProject.findModuleByPath.returns(undefined);
+    const result = await getCommand(config, "--dry-run /notfound");
+    assert.strictEqual(result, undefined);
   });
 
   it("runs maven with Windows-style paths", async () => {
-    // Simulate a Windows path for cwd and module
     const winCwd = "C:\\repo\\project";
     const winModule = "C:\\repo\\project\\ui.apps";
-    mockProject.get.returns({
+    mockProject.getModule.returns({
       absolutePath: winModule,
       profiles: ["profile1"],
     });
-    await runMaven(
+    const result = await getCommand(
       {
         ...config,
         sdk: {
@@ -109,23 +105,21 @@ describe("runMaven", () => {
           sdkHome: winCwd,
         },
       },
-      { module: winModule, dryRun: true }
+      `--dry-run ${winModule}`
     );
-    assert(consoleLogStub.calledWithMatch("[DRY RUN]"));
-    assert(consoleLogStub.calledWithMatch("mvn"));
-    assert.ok(
-      consoleLogStub.getCall(0).args[0].match(/C:\\repo\\project\\ui\.apps/)
-    );
+    assert(result && result.command.includes("[DRY RUN]"));
+    assert(result && result.command.includes("mvn"));
+    assert.ok(result && result.command.match(/C:\\repo\\project\\ui\.apps/));
   });
 
   it("runs maven with Windows-style paths and resolves module by cwd", async () => {
     const winCwd = "C:\\repo\\project\\ui.apps";
-    mockProject.get.returns(undefined);
-    mockProject.getAll.returns([
-      { absolutePath: "C:\\repo\\project", profiles: ["profile1"] },
-      { absolutePath: "C:\\repo\\project\\ui.apps", profiles: ["profile2"] },
-    ]);
-    await runMaven(
+    mockProject.getModule.returns(undefined);
+    mockProject.findModuleByPath.returns({
+      absolutePath: "C:\\repo\\project\\ui.apps",
+      profiles: ["profile2"],
+    });
+    const result = await getCommand(
       {
         ...config,
         sdk: {
@@ -133,20 +127,18 @@ describe("runMaven", () => {
           sdkHome: winCwd,
         },
       },
-      { dryRun: true }
+      "--dry-run"
     );
-    assert(consoleLogStub.calledWithMatch("[DRY RUN]"));
-    assert.ok(
-      consoleLogStub.getCall(0).args[0].match(/C:\\repo\\project\\ui\.apps/)
-    );
+    assert(result && result.command.includes("[DRY RUN]"));
+    assert.ok(result && result.command.match(/C:\\repo\\project\\ui\.apps/));
   });
 
   it("runs maven with custom mavenInstallCommand and mavenArguments from config", async () => {
-    mockProject.get.returns({
+    mockProject.getModule.returns({
       absolutePath: "/mod",
       profiles: ["profile1"],
     });
-    await runMaven(
+    const result = await getCommand(
       {
         ...config,
         maven: {
@@ -155,26 +147,26 @@ describe("runMaven", () => {
           mavenArguments: "--debug",
         },
       },
-      { module: "/mod", dryRun: true }
+      "--dry-run /mod"
     );
-    assert(consoleLogStub.calledWithMatch("mvn --debug verify"));
+    assert(result && result.command.includes("mvn --debug verify"));
   });
 
   it("adds -DskipTests when skipTests is true in opts", async () => {
-    mockProject.get.returns({
+    mockProject.getModule.returns({
       absolutePath: "/mod",
       profiles: ["profile1"],
     });
-    await runMaven(config, { module: "/mod", dryRun: true, skipTests: true });
-    assert.ok(consoleLogStub.getCall(0).args[0].includes("-DskipTests"));
+    const result = await getCommand(config, "--dry-run --skip-tests /mod");
+    assert.ok(result && result.command.includes("-DskipTests"));
   });
 
   it("adds -DskipTests when skipTests is true in config", async () => {
-    mockProject.get.returns({
+    mockProject.getModule.returns({
       absolutePath: "/mod",
       profiles: ["profile1"],
     });
-    await runMaven(
+    const result = await getCommand(
       {
         ...config,
         maven: {
@@ -182,49 +174,34 @@ describe("runMaven", () => {
           skipTests: true,
         },
       },
-      { module: "/mod", dryRun: true }
+      "--dry-run /mod"
     );
-    assert.ok(consoleLogStub.getCall(0).args[0].includes("-DskipTests"));
+    assert.ok(result && result.command.includes("-DskipTests"));
   });
 
-  it("profile flag is set from opts.profile", async () => {
-    mockProject.get.returns({
-      absolutePath: "/mod",
-      profiles: ["profile1"],
-    });
-    await runMaven(config, {
-      module: "/mod",
-      dryRun: true,
-      profile: "customProfile",
-    });
-    assert.ok(consoleLogStub.getCall(0).args[0].includes("-PcustomProfile"));
-  });
-
-  it("profile flag is set from module profiles if no opts.profile", async () => {
-    mockProject.get.returns({
+  it("profile flag is set from module profiles if present", async () => {
+    mockProject.getModule.returns({
       absolutePath: "/mod",
       profiles: ["autoInstallPackage"],
     });
-    await runMaven(config, { module: "/mod", dryRun: true });
-    assert.ok(
-      consoleLogStub.getCall(0).args[0].includes("-PautoInstallPackage")
-    );
+    const result = await getCommand(config, "--dry-run /mod");
+    assert.ok(result && result.command.includes("-PautoInstallPackage"));
   });
 
   it("does not set profile flag if no profile present", async () => {
-    mockProject.get.returns({ absolutePath: "/mod", profiles: [] });
-    await runMaven(config, { module: "/mod", dryRun: true });
-    assert.ok(!consoleLogStub.getCall(0).args[0].includes("-P"));
+    mockProject.getModule.returns({ absolutePath: "/mod", profiles: [] });
+    const result = await getCommand(config, "--dry-run /mod");
+    assert.ok(result && !result.command.includes("-P"));
   });
 
   it("command includes correct directory for deeply nested cwd", async () => {
     const deepCwd = "/repo/project/ui.apps/deep/nested";
-    mockProject.get.returns(undefined);
-    mockProject.getAll.returns([
-      { absolutePath: "/repo/project", profiles: ["profile1"] },
-      { absolutePath: "/repo/project/ui.apps", profiles: ["profile2"] },
-    ]);
-    await runMaven(
+    mockProject.getModule.returns(undefined);
+    mockProject.findModuleByPath.returns({
+      absolutePath: "/repo/project/ui.apps",
+      profiles: ["profile2"],
+    });
+    const result = await getCommand(
       {
         ...config,
         sdk: {
@@ -232,8 +209,8 @@ describe("runMaven", () => {
           sdkHome: deepCwd,
         },
       },
-      { dryRun: true }
+      "--dry-run"
     );
-    assert.ok(consoleLogStub.getCall(0).args[0].match(/ui\.apps/));
+    assert.ok(result && result.command.match(/ui\.apps/));
   });
 });
