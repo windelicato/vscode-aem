@@ -94,18 +94,34 @@ export function parseArgs<T extends ArgDefinitions>(
   argAliases: T,
   strict: boolean = false
 ): ParsedArgs<T> {
+  // Inject --help if not present
+  const hasHelp = Object.values(argAliases).some((arg) =>
+    arg.aliases?.includes("--help")
+  );
+  const argDefs = hasHelp
+    ? argAliases
+    : {
+        ...argAliases,
+        help: {
+          type: ArgType.Flag,
+          aliases: ["--help", "-h"],
+          description: "Show help for this command",
+          default: false,
+        },
+      };
+
   const args = input.trim().split(/\s+/);
-  const opts = {} as ParsedArgs<T>;
-  const positionalKeys = Object.keys(argAliases).filter(
-    (k) => argAliases[k].type === ArgType.Positional
+  const opts = {} as ParsedArgs<typeof argDefs>;
+  const positionalKeys = Object.keys(argDefs).filter(
+    (k) => argDefs[k].type === ArgType.Positional
   );
   let positionalIndex = 0;
 
-  for (const key in argAliases) {
-    if (argAliases[key].multiple) {
+  for (const key in argDefs) {
+    if (argDefs[key].multiple) {
       opts[key] = [] as any;
-    } else if (typeof argAliases[key].default !== "undefined") {
-      opts[key] = argAliases[key].default as any;
+    } else if (typeof argDefs[key].default !== "undefined") {
+      opts[key] = argDefs[key].default as any;
     } else {
       opts[key] = null as any;
     }
@@ -119,12 +135,12 @@ export function parseArgs<T extends ArgDefinitions>(
     // Handle --key=value or key=value
     if (arg.includes("=")) {
       const [argKey, value] = arg.split("=", 2);
-      for (const key in argAliases) {
+      for (const key in argDefs) {
         if (
-          argAliases[key].type !== ArgType.Positional &&
-          argAliases[key].aliases?.includes(argKey)
+          argDefs[key].type !== ArgType.Positional &&
+          argDefs[key].aliases?.includes(argKey)
         ) {
-          if (argAliases[key].type === ArgType.Flag) {
+          if (argDefs[key].type === ArgType.Flag) {
             let boolVal: boolean;
             if (value === "true") {
               boolVal = true;
@@ -133,13 +149,13 @@ export function parseArgs<T extends ArgDefinitions>(
             } else {
               boolVal = Boolean(value);
             }
-            if (argAliases[key].multiple) {
+            if (argDefs[key].multiple) {
               (opts[key] as boolean[]).push(boolVal);
             } else {
               opts[key] = boolVal as any;
             }
           } else {
-            if (argAliases[key].multiple) {
+            if (argDefs[key].multiple) {
               (opts[key] as string[]).push(value);
             } else {
               opts[key] = value as any;
@@ -150,15 +166,15 @@ export function parseArgs<T extends ArgDefinitions>(
         }
       }
     } else {
-      for (const key in argAliases) {
+      for (const key in argDefs) {
         if (
-          argAliases[key].type !== ArgType.Positional &&
-          argAliases[key].aliases?.includes(arg)
+          argDefs[key].type !== ArgType.Positional &&
+          argDefs[key].aliases?.includes(arg)
         ) {
-          if (argAliases[key].type === ArgType.Value) {
+          if (argDefs[key].type === ArgType.Value) {
             if (i + 1 < args.length && !args[i + 1].startsWith("-")) {
               const val = args[i + 1];
-              if (argAliases[key].multiple) {
+              if (argDefs[key].multiple) {
                 (opts[key] as string[]).push(val);
               } else {
                 opts[key] = val as any;
@@ -181,7 +197,7 @@ export function parseArgs<T extends ArgDefinitions>(
               boolVal = args[i + 1] === "true";
               i++;
             }
-            if (argAliases[key].multiple) {
+            if (argDefs[key].multiple) {
               (opts[key] as boolean[]).push(boolVal);
             } else {
               opts[key] = boolVal as any;
@@ -197,7 +213,7 @@ export function parseArgs<T extends ArgDefinitions>(
       // Assign to named positional args in order
       if (positionalIndex < positionalKeys.length) {
         const posKey = positionalKeys[positionalIndex];
-        if (argAliases[posKey].multiple) {
+        if (argDefs[posKey].multiple) {
           (opts[posKey] as string[]).push(arg);
         } else {
           (opts as any)[posKey] = arg;
@@ -208,10 +224,10 @@ export function parseArgs<T extends ArgDefinitions>(
   }
 
   // Check for required arguments
-  for (const key in argAliases) {
-    if (argAliases[key].required) {
+  for (const key in argDefs) {
+    if (argDefs[key].required) {
       const val = opts[key];
-      const isMissing = argAliases[key].multiple
+      const isMissing = argDefs[key].multiple
         ? !(Array.isArray(val) && val.length > 0)
         : val === null || val === undefined;
       if (isMissing) {
