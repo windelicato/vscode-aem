@@ -58,46 +58,38 @@ export class MavenProject implements MavenProjectData {
     const rootPath = path.parse(dir).root;
     while (dir !== rootPath) {
       const pomPath = path.join(dir, "pom.xml");
-      try {
-        await fs.access(pomPath);
-        const rootModule = await MavenModule.load(dir);
-        if (!rootModule) {
-          break;
-        }
+      await fs.access(pomPath);
+      const module = await MavenModule.load(dir);
 
-        // Extract child module names from the parsed pom
-        const moduleNames: string[] = (() => {
-          const pom = rootModule.pom;
-          if (pom && pom.project && pom.project.modules) {
-            const mods = pom.project.modules.module;
-            if (Array.isArray(mods)) {
-              return mods;
-            }
-            if (typeof mods === "string") {
-              return [mods];
+      // Wait until we have a root module
+      if (!module || module.parentPom) {
+        dir = path.dirname(dir);
+        continue;
+      }
+
+      // Extract and load child modules in one loop
+      let childModules: MavenModule[] = [];
+      const pom = module.pom;
+      if (pom && pom.project && pom.project.modules) {
+        const mods = pom.project.modules.module;
+        if (Array.isArray(mods)) {
+          for (const modName of mods) {
+            const child = await MavenModule.load(path.join(dir, modName));
+            if (child) {
+              childModules.push(child);
             }
           }
-          return [];
-        })();
-
-        // Load all child modules
-        let childModules: MavenModule[] = [];
-        if (moduleNames.length > 0) {
-          const children = await Promise.all(
-            moduleNames.map(async (modName) =>
-              MavenModule.load(path.join(dir, modName))
-            )
-          );
-          childModules = children.filter((mod): mod is MavenModule => !!mod);
+        } else if (typeof mods === "string") {
+          const child = await MavenModule.load(path.join(dir, mods));
+          if (child) {
+            childModules.push(child);
+          }
         }
-
-        // Return the MavenProject with root and children
-        return new MavenProject([rootModule, ...childModules]);
-      } catch {
-        // ignore and continue up
       }
-      dir = path.dirname(dir);
+      return new MavenProject([module, ...childModules]);
     }
+
+    // Return the MavenProject with root and children
     return null;
   }
 

@@ -1,9 +1,14 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { AemMavenHelper } from "./aem/maven/helper";
+// import { AemMavenHelper } from "./aem/maven/helper"; // No longer needed
+import { getCommand } from "../lib/maven/maven";
 import { AemSDKHelper } from "./aem/sdk/helper";
 import { AemScaffoldHelper } from "./aem/scaffold/helper";
 import { loadConfig } from "../lib/config/config";
+
+// Global output channel and terminal
+let globalOutputChannel: vscode.OutputChannel | undefined;
+let globalTerminal: vscode.Terminal | undefined;
 
 function getFullConfig() {
   // Get all aem settings as a single object
@@ -12,6 +17,20 @@ function getFullConfig() {
 }
 
 export function activate(context: vscode.ExtensionContext) {
+  // Initialize global output channel and terminal
+  if (!globalOutputChannel) {
+    globalOutputChannel = vscode.window.createOutputChannel("AEM Maven");
+  }
+  if (!globalTerminal) {
+    globalTerminal = vscode.window.terminals.find(
+      (t) => t.name === "AEM Maven"
+    );
+    if (!globalTerminal) {
+      globalTerminal = vscode.window.createTerminal({ name: "AEM Maven" });
+    }
+  }
+
+  // Initialize the library configuration
   const aemConfig = getFullConfig();
   console.log("AEM Extension activated with config:", aemConfig);
 
@@ -57,15 +76,21 @@ export function activate(context: vscode.ExtensionContext) {
         }
       }
 
-      // Use AemMavenHelper to build the command and directory
-      const { command, directory, error } = AemMavenHelper.buildCommand({
-        cwd,
-        input: input || "",
-      });
-      if (error) {
-        vscode.window.showErrorMessage(error);
+      // Use lib/maven's getCommand to build the command and directory
+      let cmdResult;
+      try {
+        cmdResult = await getCommand(libConfig, input || "", cwd);
+      } catch (err) {
+        vscode.window.showErrorMessage(`Failed to build Maven command: ${err}`);
         return;
       }
+      if (!cmdResult) {
+        vscode.window.showErrorMessage(
+          "Could not determine Maven command or module."
+        );
+        return;
+      }
+      const { command, cwd: directory } = cmdResult;
       if (command.startsWith("echo ")) {
         vscode.window.showInformationMessage(command.replace("echo ", ""));
         return;
@@ -76,8 +101,10 @@ export function activate(context: vscode.ExtensionContext) {
         "terminal"
       );
       if (outputMode === "output") {
-        const outputChannel = vscode.window.createOutputChannel("AEM Maven");
-        outputChannel.show(true);
+        // Use global output channel
+        if (globalOutputChannel) {
+          globalOutputChannel.show(true);
+        }
         const cp = require("child_process").spawn(
           `cd "${directory}" && ${command}`,
           {
@@ -86,13 +113,13 @@ export function activate(context: vscode.ExtensionContext) {
           }
         );
         cp.stdout.on("data", (data: Buffer) => {
-          outputChannel.append(data.toString());
+          globalOutputChannel?.append(data.toString());
         });
         cp.stderr.on("data", (data: Buffer) => {
-          outputChannel.append(data.toString());
+          globalOutputChannel?.append(data.toString());
         });
         cp.on("close", (code: number) => {
-          outputChannel.appendLine(`\nProcess exited with code ${code}`);
+          globalOutputChannel?.appendLine(`\nProcess exited with code ${code}`);
           if (code !== 0) {
             vscode.window.showErrorMessage(
               `AEM Maven command failed (exit code ${code})`
@@ -100,14 +127,12 @@ export function activate(context: vscode.ExtensionContext) {
           }
         });
       } else {
-        let terminal = vscode.window.terminals.find(
-          (t) => t.name === "AEM Maven"
-        );
-        if (!terminal) {
-          terminal = vscode.window.createTerminal({ name: "AEM Maven" });
+        // Use global terminal
+        if (!globalTerminal) {
+          globalTerminal = vscode.window.createTerminal({ name: "AEM Maven" });
         }
-        terminal.show();
-        terminal.sendText(`cd "${directory}" && ${command}`);
+        globalTerminal.show();
+        globalTerminal.sendText(`cd "${directory}" && ${command}`);
       }
     }
   );
