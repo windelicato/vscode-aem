@@ -3,7 +3,6 @@ import * as path from "path";
 // import { AemMavenHelper } from "./aem/maven/helper"; // No longer needed
 import { getCommand as getMavenCommand } from "../lib/maven/maven";
 import { AemSDKHelper } from "./aem/sdk/helper";
-import { AemScaffoldHelper } from "./aem/scaffold/helper";
 import { loadConfig } from "../lib/config/config";
 import { getCommand as getScaffoldCommand } from "../lib/scaffold/scaffold";
 
