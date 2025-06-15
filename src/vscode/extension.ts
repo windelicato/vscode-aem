@@ -1,10 +1,11 @@
 import * as vscode from "vscode";
 import * as path from "path";
 // import { AemMavenHelper } from "./aem/maven/helper"; // No longer needed
-import { getCommand } from "../lib/maven/maven";
+import { getCommand as getMavenCommand } from "../lib/maven/maven";
 import { AemSDKHelper } from "./aem/sdk/helper";
 import { AemScaffoldHelper } from "./aem/scaffold/helper";
 import { loadConfig } from "../lib/config/config";
+import { getCommand as getScaffoldCommand } from "../lib/scaffold/scaffold";
 
 // Global output channel and terminal
 let globalOutputChannel: vscode.OutputChannel | undefined;
@@ -84,7 +85,7 @@ export function activate(context: vscode.ExtensionContext) {
       // Use lib/maven's getCommand to build the command and directory
       let cmdResult;
       try {
-        cmdResult = await getCommand(libConfig, input || "", cwd);
+        cmdResult = await getMavenCommand(libConfig, input || "", cwd);
       } catch (err) {
         vscode.window.showErrorMessage(`Failed to build Maven command: ${err}`);
         return;
@@ -173,7 +174,65 @@ export function activate(context: vscode.ExtensionContext) {
   const aemScaffoldDisposable = vscode.commands.registerCommand(
     "vscode-aem.scaffold",
     async () => {
-      await AemScaffoldHelper.runScaffold();
+      // Prompt for App Title
+      const appTitle = await vscode.window.showInputBox({
+        prompt: "Enter the App Title",
+        ignoreFocusOut: true,
+      });
+      if (!appTitle) {
+        vscode.window.showWarningMessage("App Title is required.");
+        return;
+      }
+      // Prompt for Java package name
+      let packageName = await vscode.window.showInputBox({
+        prompt:
+          "Short Name (e.g., mysite). Used as 'com.<yours>' for groupId/package, '<yours>' for appId/artifactId.",
+        ignoreFocusOut: true,
+      });
+      if (!packageName) {
+        vscode.window.showWarningMessage("Java package name is required.");
+        return;
+      }
+      if (/\s/.test(packageName)) {
+        vscode.window.showWarningMessage(
+          "Java package name cannot contain spaces."
+        );
+        return;
+      }
+      // Find the workspace folder
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        vscode.window.showErrorMessage("No workspace folder found.");
+        return;
+      }
+      const workspaceRoot = workspaceFolders[0].uri.fsPath;
+      // Build the input string for getCommand
+      const input = `--appTitle ${appTitle} --packageName ${packageName}`;
+      // Use lib/scaffold's getCommand to build the command and directory
+      let cmdResult;
+      try {
+        cmdResult = getScaffoldCommand(
+          aemConfig.scaffold,
+          input,
+          workspaceRoot
+        );
+      } catch (err) {
+        vscode.window.showErrorMessage(
+          `Failed to build scaffold command: ${err}`
+        );
+        return;
+      }
+      if (!cmdResult) {
+        vscode.window.showErrorMessage("Could not determine scaffold command.");
+        return;
+      }
+      const { command, cwd: directory } = cmdResult;
+      // Use global terminal to run the command
+      if (!globalTerminal) {
+        globalTerminal = vscode.window.createTerminal({ name: "AEM Maven" });
+      }
+      globalTerminal.show();
+      globalTerminal.sendText(`cd "${directory}" && ${command}`);
     }
   );
   context.subscriptions.push(aemScaffoldDisposable);
