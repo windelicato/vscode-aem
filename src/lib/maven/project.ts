@@ -1,7 +1,14 @@
 import * as fs from "fs/promises";
-import { MavenModule } from "../module/module";
-import type { MavenProjectData } from "./types";
+import { MavenModule } from "./module";
 import path from "path";
+
+/**
+ * Interface for MavenProject data structure.
+ * @property modules - Map of module name or absolute path to MavenModule instance.
+ */
+export interface MavenProjectData {
+  modules: Record<string, MavenModule>;
+}
 
 /**
  * Represents a Maven project, including its root and all modules.

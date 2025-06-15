@@ -1,5 +1,5 @@
 import { getCommand, runCommand } from "./maven";
-import { MavenProject } from "./project/project";
+import { MavenProject } from "./project";
 import assert from "assert";
 import sinon from "sinon";
 import type { ResolvedConfig } from "../config/config";

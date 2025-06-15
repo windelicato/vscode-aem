@@ -1,6 +1,6 @@
 import { ResolvedConfig } from "../config/config";
-import type { MavenModule } from "./module/module";
-import { MavenProject } from "./project/project";
+import type { MavenModule } from "./module";
+import { MavenProject } from "./project";
 import { execSync } from "child_process";
 import path from "path";
 import { parseArgs, ArgType, ArgDefinitions } from "../utils/argParser";
