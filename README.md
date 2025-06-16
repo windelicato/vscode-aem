@@ -16,6 +16,9 @@
   <a href="https://github.com/windelicato/vscode-aem/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/windelicato/vscode-aem.svg" alt="License" />
   </a>
+  <a href="https://www.npmjs.com/package/vscode-aem">
+    <img src="https://img.shields.io/npm/v/vscode-aem.svg?logo=npm&label=npm" alt="npm version" />
+  </a>
   <a href="https://github.com/windelicato/vscode-aem">
     <img src="https://img.shields.io/github/stars/windelicato/vscode-aem?style=social" alt="GitHub stars" />
   </a>
@@ -159,6 +162,16 @@ Use the `AEM: Scaffold` command to create new AEM projects or modules with Adobe
 # CLI Usage & Configuration
 
 The CLI now supports the full app configuration and all SDK/Maven/scaffold commands. You can use the CLI for local automation, scripting, or CI/CD.
+
+## CLI Installation
+
+Install the CLI globally from npm:
+
+```sh
+npm install -g vscode-aem
+```
+
+This will make the `aem` command available anywhere on your system.
 
 ## Running the CLI
 
