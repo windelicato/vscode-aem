@@ -58,7 +58,7 @@ jobs:
       - name: Lint and test
         run: |
           npm run lint
-          npm test:cli
+          npm run test:cli
 
       - name: Publish to npm
         if: startsWith(github.ref, 'refs/tags/v')
