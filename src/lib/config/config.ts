@@ -129,10 +129,28 @@ export function loadConfig(json: unknown): ResolvedConfig {
  * @returns The resolved config object.
  */
 export function loadConfigFile(configPath = ".aemrc.json") {
-  const configFilePath =
-    typeof process !== "undefined"
-      ? path.resolve(process.cwd(), configPath)
-      : "";
+  // Check environment variable first
+  const envConfigPath =
+    typeof process !== "undefined" ? process.env.AEM_CONFIG_PATH : undefined;
+  let finalConfigPath = configPath;
+  let configFilePath = "";
+  if (envConfigPath) {
+    finalConfigPath = envConfigPath;
+    configFilePath = path.resolve(process.cwd(), finalConfigPath);
+  } else {
+    // Try current directory first
+    configFilePath = path.resolve(process.cwd(), finalConfigPath);
+    if (!fs.existsSync(configFilePath)) {
+      // Try home directory
+      const home = process.env.HOME || process.env.USERPROFILE;
+      if (home) {
+        const homeConfigPath = path.join(home, finalConfigPath);
+        if (fs.existsSync(homeConfigPath)) {
+          configFilePath = homeConfigPath;
+        }
+      }
+    }
+  }
   const fileData: unknown =
     configFilePath && fs.existsSync(configFilePath)
       ? JSON.parse(fs.readFileSync(configFilePath, "utf-8"))
@@ -146,12 +164,27 @@ export function loadConfigFile(configPath = ".aemrc.json") {
  * @returns The resolved config object (Promise).
  */
 export async function loadConfigFileAsync(configPath = ".aemrc.json") {
-  const configFilePath =
-    typeof process !== "undefined"
-      ? path.resolve(process.cwd(), configPath)
-      : "";
+  const envConfigPath =
+    typeof process !== "undefined" ? process.env.AEM_CONFIG_PATH : undefined;
+  let finalConfigPath = configPath;
+  let configFilePath = "";
+  if (envConfigPath) {
+    finalConfigPath = envConfigPath;
+    configFilePath = path.resolve(process.cwd(), finalConfigPath);
+  } else {
+    configFilePath = path.resolve(process.cwd(), finalConfigPath);
+    if (!fs.existsSync(configFilePath)) {
+      const home = process.env.HOME || process.env.USERPROFILE;
+      if (home) {
+        const homeConfigPath = path.join(home, finalConfigPath);
+        if (fs.existsSync(homeConfigPath)) {
+          configFilePath = homeConfigPath;
+        }
+      }
+    }
+  }
   let fileData: unknown = {};
-  if (configFilePath) {
+  if (configFilePath && fs.existsSync(configFilePath)) {
     try {
       const content = await fsPromises.readFile(configFilePath, "utf-8");
       fileData = JSON.parse(content);

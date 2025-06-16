@@ -51,7 +51,7 @@
 //    // Mock config
 //    sinon.stub(vscode.workspace, 'getConfiguration').returns({
 //      get: (key: string, def: any) => {
-//        if (key === 'sdkHome') { return '/mock/sdk/home'; }
+//        if (key === 'home') { return '/mock/sdk/home'; }
 //        if (key === 'quickstartPath') { return '/mock/path/to/aem-sdk-quickstart.zip'; }
 //        if (key === 'formsAddonPath') { return '/mock/path/to/aem-forms-addon.far'; }
 //        if (key === 'instances') { return [{ name: 'author', port: 4502, debugPort: 5005 }]; }
@@ -89,7 +89,7 @@
 //    const instanceDir = path.join(tempDir, 'author');
 //    const configStub = sinon.stub(vscode.workspace, 'getConfiguration').returns({
 //      get: (key: string, def: any) => {
-//        if (key === 'sdkHome') { return tempDir; }
+//        if (key === 'home') { return tempDir; }
 //        if (key === 'instances') { return [{ name: 'author', port: 4502, debugPort: 5005 }]; }
 //        return def;
 //      },
@@ -142,7 +142,7 @@
 //    vscode.window.showQuickPick = async (items: any) => items[0];
 //    configStub = sinon.stub(vscode.workspace, 'getConfiguration').returns({
 //      get: (key: string, def: any) => {
-//        if (key === 'sdkHome') { return '/mock/sdk/home'; }
+//        if (key === 'home') { return '/mock/sdk/home'; }
 //        if (key === 'instances') { return [{ name: 'author', port: 4502, debugPort: 5005 }]; }
 //        return def;
 //      },

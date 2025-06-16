@@ -20,6 +20,8 @@ Commands:
   sdk setup         Setup the AEM SDK
   maven [module]    Run Maven install (optionally for a module)
   scaffold          Scaffold a new AEM project
+  config init       Generate a default config file (see below)
+  config show       Show the fully resolved config
   help              Show this help message
 
 For command-specific help, use aem <command> --help.
@@ -61,6 +63,18 @@ export function printSubcommandHelp(command: string, subcommand?: string) {
   } else if (command === "scaffold") {
     console.log(
       "aem scaffold [options]\n" + generateHelp(ScaffoldCommand.ARGUMENTS)
+    );
+  } else if (command === "config") {
+    console.log(
+      `aem config init
+  Generate a default config file.
+
+  By default, writes to .aemrc.json in the current directory.
+  Set the AEM_CONFIG_PATH environment variable to change the location.
+
+aem config show
+  Show the fully resolved config (including env overrides and defaults).
+`
     );
   } else {
     printHelp();

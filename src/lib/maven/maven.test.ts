@@ -32,7 +32,7 @@ describe("MavenCommand", () => {
         outputMode: "terminal",
       },
       sdk: {
-        sdkHome: "/root",
+        home: "/root",
         instances: [
           { name: "author", port: 4502, debugPort: 5005, debug: false },
           { name: "publish", port: 4503, debugPort: 5006, debug: false },
@@ -105,7 +105,7 @@ describe("MavenCommand", () => {
       ...config,
       sdk: {
         ...config.sdk,
-        sdkHome: winCwd,
+        home: winCwd,
       },
     });
     const result = await mavenCmd.create(`--dry-run ${winModule}`);
@@ -125,7 +125,7 @@ describe("MavenCommand", () => {
       ...config,
       sdk: {
         ...config.sdk,
-        sdkHome: winCwd,
+        home: winCwd,
       },
     });
     const result = await mavenCmd.create("--dry-run");
@@ -204,7 +204,7 @@ describe("MavenCommand", () => {
       ...config,
       sdk: {
         ...config.sdk,
-        sdkHome: deepCwd,
+        home: deepCwd,
       },
     });
     const result = await mavenCmd.create("--dry-run");

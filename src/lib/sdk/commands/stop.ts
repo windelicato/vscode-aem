@@ -40,7 +40,7 @@ export class SdkStopCommand extends Command<
       : config.instances;
     const shutdownPromises: Promise<void>[] = [];
     for (const instance of instances) {
-      const instanceDir = path.join(config.sdkHome, instance.name);
+      const instanceDir = path.join(config.home, instance.name);
       const quickstartBin = path.join(instanceDir, "crx-quickstart", "bin");
       const stopScript = path.join(
         quickstartBin,

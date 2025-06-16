@@ -15,7 +15,7 @@ suite("config system", () => {
   const sampleConfig = {
     maven: { skipTests: true, mavenArguments: "-X" },
     scaffold: { scaffoldArgs: "--foo" },
-    sdk: { sdkHome: "/tmp/sdk", requiredJavaVersion: 17 },
+    sdk: { home: "/tmp/sdk", requiredJavaVersion: 17 },
   };
 
   suiteSetup(() => {
@@ -37,7 +37,7 @@ suite("config system", () => {
     const config = loadConfig("nonexistent.aemrc.json");
     assert.ok(config.maven.hasOwnProperty("skipTests"));
     assert.ok(config.scaffold.hasOwnProperty("scaffoldArgs"));
-    assert.ok(config.sdk.hasOwnProperty("sdkHome"));
+    assert.ok(config.sdk.hasOwnProperty("home"));
   });
 
   test("should resolve config from object (loadConfig)", () => {
@@ -45,7 +45,7 @@ suite("config system", () => {
     assert.strictEqual(config.maven.skipTests, true);
     assert.strictEqual(config.maven.mavenArguments, "-X");
     assert.strictEqual(config.scaffold.scaffoldArgs, "--foo");
-    assert.strictEqual(config.sdk.sdkHome, "/tmp/sdk");
+    assert.strictEqual(config.sdk.home, "/tmp/sdk");
     assert.strictEqual(config.sdk.requiredJavaVersion, 17);
   });
 
@@ -55,7 +55,7 @@ suite("config system", () => {
     assert.strictEqual(config.maven.skipTests, true);
     assert.strictEqual(config.maven.mavenArguments, "-X");
     assert.strictEqual(config.scaffold.scaffoldArgs, "--foo");
-    assert.strictEqual(config.sdk.sdkHome, "/tmp/sdk");
+    assert.strictEqual(config.sdk.home, "/tmp/sdk");
     assert.strictEqual(config.sdk.requiredJavaVersion, 17);
   });
 
@@ -65,23 +65,23 @@ suite("config system", () => {
     assert.strictEqual(config.maven.skipTests, true);
     assert.strictEqual(config.maven.mavenArguments, "-X");
     assert.strictEqual(config.scaffold.scaffoldArgs, "--foo");
-    assert.strictEqual(config.sdk.sdkHome, "/tmp/sdk");
+    assert.strictEqual(config.sdk.home, "/tmp/sdk");
     assert.strictEqual(config.sdk.requiredJavaVersion, 17);
   });
 
   test("should merge configs", () => {
     const base = {
       maven: { skipTests: false, mavenArguments: "" },
-      sdk: { sdkHome: "/b", requiredJavaVersion: 11 },
+      sdk: { home: "/b", requiredJavaVersion: 11 },
     };
     const override = {
       maven: { skipTests: true, mavenArguments: "-X" },
-      sdk: { sdkHome: "/a", requiredJavaVersion: 17 },
+      sdk: { home: "/a", requiredJavaVersion: 17 },
     };
     const merged = mergeConfig(base, override);
     assert.strictEqual(merged.maven.skipTests, true);
     assert.strictEqual(merged.maven.mavenArguments, "-X");
-    assert.strictEqual(merged.sdk.sdkHome, "/a");
+    assert.strictEqual(merged.sdk.home, "/a");
     assert.strictEqual(merged.sdk.requiredJavaVersion, 17);
   });
 
@@ -95,21 +95,21 @@ suite("config system", () => {
     const resolved = resolveSchema(configSchema);
     assert.strictEqual(resolved.maven.skipTests, false);
     assert.ok(resolved.scaffold.hasOwnProperty("scaffoldArgs"));
-    assert.ok(resolved.sdk.hasOwnProperty("sdkHome"));
+    assert.ok(resolved.sdk.hasOwnProperty("home"));
   });
 
   test("should loadConfigFile with windows paths", () => {
     const winConfig = {
       maven: { skipTests: true, mavenArguments: "-X" },
       scaffold: { scaffoldArgs: "--foo" },
-      sdk: { sdkHome: "C:/tmp/sdk", requiredJavaVersion: 17 },
+      sdk: { home: "C:/tmp/sdk", requiredJavaVersion: 17 },
     };
     fs.writeFileSync(tempConfigPath, JSON.stringify(winConfig));
     const config = loadConfigFile(tempConfigPath);
     assert.strictEqual(config.maven.skipTests, true);
     assert.strictEqual(config.maven.mavenArguments, "-X");
     assert.strictEqual(config.scaffold.scaffoldArgs, "--foo");
-    assert.strictEqual(config.sdk.sdkHome, "C:/tmp/sdk");
+    assert.strictEqual(config.sdk.home, "C:/tmp/sdk");
     assert.strictEqual(config.sdk.requiredJavaVersion, 17);
   });
 
@@ -117,14 +117,14 @@ suite("config system", () => {
     const winConfig = {
       maven: { skipTests: true, mavenArguments: "-X" },
       scaffold: { scaffoldArgs: "--foo" },
-      sdk: { sdkHome: "C:/tmp/sdk", requiredJavaVersion: 17 },
+      sdk: { home: "C:/tmp/sdk", requiredJavaVersion: 17 },
     };
     fs.writeFileSync(tempConfigPath, JSON.stringify(winConfig));
     const config = await loadConfigFileAsync(tempConfigPath);
     assert.strictEqual(config.maven.skipTests, true);
     assert.strictEqual(config.maven.mavenArguments, "-X");
     assert.strictEqual(config.scaffold.scaffoldArgs, "--foo");
-    assert.strictEqual(config.sdk.sdkHome, "C:/tmp/sdk");
+    assert.strictEqual(config.sdk.home, "C:/tmp/sdk");
     assert.strictEqual(config.sdk.requiredJavaVersion, 17);
   });
 });
@@ -134,7 +134,7 @@ describe("windows path compatibility", () => {
   const winSampleConfig = {
     maven: { skipTests: true, mavenArguments: "-X" },
     scaffold: { scaffoldArgs: "--foo" },
-    sdk: { sdkHome: "C:/tmp/sdk", requiredJavaVersion: 17 },
+    sdk: { home: "C:/tmp/sdk", requiredJavaVersion: 17 },
   };
 
   afterEach(() => {
@@ -149,7 +149,7 @@ describe("windows path compatibility", () => {
     assert.strictEqual(config.maven.skipTests, true);
     assert.strictEqual(config.maven.mavenArguments, "-X");
     assert.strictEqual(config.scaffold.scaffoldArgs, "--foo");
-    assert.strictEqual(config.sdk.sdkHome, "C:/tmp/sdk");
+    assert.strictEqual(config.sdk.home, "C:/tmp/sdk");
     assert.strictEqual(config.sdk.requiredJavaVersion, 17);
   });
 
@@ -159,7 +159,7 @@ describe("windows path compatibility", () => {
     assert.strictEqual(config.maven.skipTests, true);
     assert.strictEqual(config.maven.mavenArguments, "-X");
     assert.strictEqual(config.scaffold.scaffoldArgs, "--foo");
-    assert.strictEqual(config.sdk.sdkHome, "C:/tmp/sdk");
+    assert.strictEqual(config.sdk.home, "C:/tmp/sdk");
     assert.strictEqual(config.sdk.requiredJavaVersion, 17);
   });
 });

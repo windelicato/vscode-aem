@@ -35,9 +35,9 @@ export class SdkSetupCommand extends Command<
       description: "Path to AEM Forms add-on zip",
       required: false,
     },
-    sdkHome: {
+    home: {
       type: ArgType.Value,
-      aliases: ["sdkHome", "--sdkHome", "-d"],
+      aliases: ["home", "--home", "-d"],
       description: "AEM SDK home directory",
       required: false,
     },
@@ -66,7 +66,7 @@ export class SdkSetupCommand extends Command<
     const formsAddonPath = expandHome(
       opts.formsAddonPath || config.formsAddonPath
     );
-    const sdkHome = expandHome(opts.sdkHome || config.sdkHome);
+    const home = expandHome(opts.home || config.home);
 
     if (!quickstartPath || !quickstartPath.toLowerCase().endsWith(".zip")) {
       const msg =
@@ -79,7 +79,7 @@ export class SdkSetupCommand extends Command<
     }
     let quickstartJar = await extractFileFromZip(
       quickstartPath,
-      sdkHome,
+      home,
       /^aem-sdk-quickstart-[0-9a-zA-Z_.-]+\.jar$/,
       "aem-sdk-quickstart-*.jar",
       progress
@@ -100,11 +100,11 @@ export class SdkSetupCommand extends Command<
         return;
       }
       const formsAddonBase = path.basename(formsAddonPath);
-      const sdkHomeFormsAddon = path.join(sdkHome, formsAddonBase);
-      if (!fs.existsSync(sdkHomeFormsAddon)) {
+      const homeFormsAddon = path.join(home, formsAddonBase);
+      if (!fs.existsSync(homeFormsAddon)) {
         try {
-          fs.copyFileSync(formsAddonPath, sdkHomeFormsAddon);
-          const msg = `[INFO] Copied Forms Add-on ${formsAddonPath} to ${sdkHomeFormsAddon}`;
+          fs.copyFileSync(formsAddonPath, homeFormsAddon);
+          const msg = `[INFO] Copied Forms Add-on ${formsAddonPath} to ${homeFormsAddon}`;
           if (progress) {
             progress(msg);
           }
@@ -118,8 +118,8 @@ export class SdkSetupCommand extends Command<
         }
       }
       formsAddonFar = await extractFileFromZip(
-        sdkHomeFormsAddon,
-        sdkHome,
+        homeFormsAddon,
+        home,
         /^aem-forms-addon-.*\.far$/,
         "aem-forms-addon-*.far",
         progress
@@ -143,7 +143,7 @@ export class SdkSetupCommand extends Command<
     // --- Copy quickstart jar and forms add-on far to each instance ---
     const instances = config.instances;
     for (const instance of instances) {
-      const instanceDir = path.join(sdkHome, instance.name);
+      const instanceDir = path.join(home, instance.name);
       if (!fs.existsSync(instanceDir)) {
         fs.mkdirSync(instanceDir, { recursive: true });
       }

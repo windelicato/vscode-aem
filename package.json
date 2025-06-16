@@ -166,7 +166,7 @@
           "description": "Version of the Maven Archetype Plugin to use for scaffolding.",
           "order": 6
         },
-        "aem.sdk.sdkHome": {
+        "aem.sdk.home": {
           "type": "string",
           "default": "",
           "description": "Path to your AEM SDK root directory (AEM_SDK_HOME). Must be set explicitly.",
@@ -292,8 +292,7 @@
   },
   "dependencies": {
     "fast-xml-parser": "^5.2.5",
-    "unzipper": "^0.12.3",
-    "ps-list": "^8.0.0"
+    "unzipper": "^0.12.3"
   },
   "publisher": "windelicato",
   "icon": "images/logo.png",

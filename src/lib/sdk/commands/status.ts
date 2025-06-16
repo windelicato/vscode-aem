@@ -36,7 +36,7 @@ export class SdkStatusCommand extends Command<
       ? config.instances.filter((i) => i.name === opts.instance)
       : config.instances;
     for (const instance of instances) {
-      const instanceDir = path.join(config.sdkHome, instance.name);
+      const instanceDir = path.join(config.home, instance.name);
       const pidFile = path.join(
         instanceDir,
         "crx-quickstart",

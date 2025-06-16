@@ -43,7 +43,7 @@ export class SdkLogCommand extends Command<typeof SdkLogCommand.ARGUMENTS> {
       ? this.config.sdk.instances.filter((i) => i.name === opts.instance)
       : this.config.sdk.instances;
     for (const instance of instances) {
-      const instanceDir = path.join(this.config.sdk.sdkHome, instance.name);
+      const instanceDir = path.join(this.config.sdk.home, instance.name);
       const logDir = path.join(instanceDir, "crx-quickstart", "logs");
       const logFile = path.join(logDir, logFileName);
       if (fs.existsSync(logFile)) {

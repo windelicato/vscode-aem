@@ -1,4 +1,5 @@
 # vscode-aem
+
 <p align="center">
   <img src="images/logo.png" width="120" alt="AEM Maven Helper Logo" style="margin-bottom: 1em;"/>
 </p>
@@ -26,36 +27,36 @@ Lightweight tools for working with AEM projects and SDKs inside Visual Studio Co
 
 ## Features
 
-* **Context-aware Maven module and profile detection**
+- **Context-aware Maven module and profile detection**
   Detects the correct Maven module and profile based on the current file or directory.
 
-* **Build and deploy commands**
+- **Build and deploy commands**
   Provides commands to build or deploy specific modules using standard AEM profiles (`autoInstallSinglePackage`, `autoInstallPackage`, `autoInstallBundle`).
 
-* **Flexible build options**
+- **Flexible build options**
   Supports optional flags like `skip-tests` and `dry-run` via the command palette or terminal.
 
-* **AEM SDK instance management**
+- **AEM SDK instance management**
   Start, stop, and monitor local AEM SDK instances (author/publish) with configurable ports and debug settings.
 
-* **SDK extraction and setup**
+- **SDK extraction and setup**
   Extract and install the AEM SDK Quickstart and optional Forms Add-on.
 
-* **Instance status and log tailing**
+- **Instance status and log tailing**
   View running status and logs directly in VS Code.
 
-* **Project and module scaffolding**
+- **Project and module scaffolding**
   Scaffold new AEM projects and modules using the Adobe Maven archetype.
 
-* **CLI integration**
+- **CLI integration**
   Includes an optional CLI script to run Maven commands outside of VS Code with the same logic.
 
 ---
 
 ## Requirements
 
-* Java and Maven installed and available in your `PATH`
-* AEM Maven project (archetype or similar structure)
+- Java and Maven installed and available in your `PATH`
+- AEM Maven project (archetype or similar structure)
 
 ---
 
@@ -79,17 +80,18 @@ Use the `AEM Maven Helper` command to run Maven builds based on the file or fold
 2. Run `AEM Maven Helper` from the Command Palette.
 3. Enter module name and options (e.g., `ui.apps build skip-tests`).
 
-   * Leave blank to auto-detect the module.
-   * Use `build` to build without install profile.
-   * Use `all` to build the `all` module.
-   * Add `skip-tests` or `dry-run` as needed.
+   - Leave blank to auto-detect the module.
+   - Use `build` to build without install profile.
+   - Use `all` to build the `all` module.
+   - Add `skip-tests` or `dry-run` as needed.
+
 4. The extension will run or display the appropriate Maven command.
 
 ### Example
 
-* From inside `ui.apps`, no input will build it with the correct profile.
-* From `ui.apps/some/nested/path`, it will detect and build the right parent module.
-* Run `core skip-tests dry-run` to preview the command for `core` without executing.
+- From inside `ui.apps`, no input will build it with the correct profile.
+- From `ui.apps/some/nested/path`, it will detect and build the right parent module.
+- Run `core skip-tests dry-run` to preview the command for `core` without executing.
 
 ---
 
@@ -135,22 +137,22 @@ This extension includes `run-aem-helper.js` to run Maven logic from your termina
 
 2. **Configure extension settings**
 
-   * Set `aemSDK.sdkHome` to the directory where SDKs should be installed (e.g. `/Users/you/aem-sdk`).
-   * (Optional) Edit `aemSDK.instances` to configure instance names, ports, and debug options.
+   - Set `aemSDK.home` to the directory where SDKs should be installed (e.g. `/Users/you/aem-sdk`).
+   - (Optional) Edit `aemSDK.instances` to configure instance names, ports, and debug options.
 
 3. **Run the SDK Setup command**
 
-   * Open the Command Palette and run `AEM: SDK Setup`.
-   * If `aemSDK.quickstartPath` or `aemSDK.formsAddonPath` are not configured, you’ll be prompted to select files.
-   * The extension will extract and configure the SDK for each instance.
+   - Open the Command Palette and run `AEM: SDK Setup`.
+   - If `aemSDK.quickstartPath` or `aemSDK.formsAddonPath` are not configured, you’ll be prompted to select files.
+   - The extension will extract and configure the SDK for each instance.
 
 4. **Start your AEM instances**
 
-   * Run `AEM: SDK Start` from the Command Palette.
+   - Run `AEM: SDK Start` from the Command Palette.
 
 5. **Check instance status and logs**
 
-   * Use `AEM: SDK Status` and `AEM: SDK Log` as needed.
+   - Use `AEM: SDK Status` and `AEM: SDK Log` as needed.
 
 > **Tip:** Only re-run SDK Setup if updating the Quickstart or Forms Add-on.
 
@@ -172,18 +174,18 @@ Use the `AEM: Scaffold` command to create new AEM projects or modules with Adobe
 
 ### Scaffolding Commands
 
-* **AEM Scaffold** (`vscode-aem.scaffold`)
+- **AEM Scaffold** (`vscode-aem.scaffold`)
   Launches an interactive prompt to scaffold a new AEM project. It will ask for:
 
-  * App Title (e.g., `My Site`)
-  * Java package (e.g., `example.mysite`). This will be used as `com.example.mysite` for `-DgroupId` and `-Dpackage`.
+  - App Title (e.g., `My Site`)
+  - Java package (e.g., `example.mysite`). This will be used as `com.example.mysite` for `-DgroupId` and `-Dpackage`.
 
   The command runs `mvn -B org.apache.maven.plugins:maven-archetype-plugin:${archetypePluginVersion}:generate` using your configured settings.
 
 > You can customize the archetype version and parameters via:
 >
-> * `aemScaffold.archetypePluginVersion`
-> * `aemScaffold.scaffoldArgs`
+> - `aemScaffold.archetypePluginVersion`
+> - `aemScaffold.scaffoldArgs`
 
 ---
 
@@ -191,36 +193,36 @@ Use the `AEM: Scaffold` command to create new AEM projects or modules with Adobe
 
 ### Maven
 
-* `aemMavenHelper.skipTests`
-* `aemMavenHelper.dryRun`
-* `aemMavenHelper.defaultGoal`
-* `aemMaven.outputMode`
-* `aemMaven.mavenArguments`
-* `aemMaven.mavenInstallCommand`
+- `aemMavenHelper.skipTests`
+- `aemMavenHelper.dryRun`
+- `aemMavenHelper.defaultGoal`
+- `aemMaven.outputMode`
+- `aemMaven.mavenArguments`
+- `aemMaven.mavenInstallCommand`
 
 ### Scaffolding
 
-* `aemScaffold.scaffoldArgs`
-* `aemScaffold.archetypePluginVersion`
+- `aemScaffold.scaffoldArgs`
+- `aemScaffold.archetypePluginVersion`
 
 ### SDK
 
-* `aemSDK.sdkHome`
-* `aemSDK.instances`
-* `aemSDK.requiredJavaVersion`
-* `aemSDK.passwordFile`
-* `aemSDK.jvmOpts`
-* `aemSDK.jvmDebugBaseOpts`
-* `aemSDK.quickstartPath`
-* `aemSDK.formsAddonPath`
+- `aemSDK.home`
+- `aemSDK.instances`
+- `aemSDK.requiredJavaVersion`
+- `aemSDK.passwordFile`
+- `aemSDK.jvmOpts`
+- `aemSDK.jvmDebugBaseOpts`
+- `aemSDK.quickstartPath`
+- `aemSDK.formsAddonPath`
 
 ---
 
 ## Known Issues
 
-* Only supports Maven-based AEM projects with standard archetype structure.
-* Profile detection assumes conventional profile names and plugin usage.
-* On macOS, Java may still appear in the Dock even with `-Djava.awt.headless=true`. Add `-Dapple.awt.UIElement=true` to fully suppress the Dock icon.
+- Only supports Maven-based AEM projects with standard archetype structure.
+- Profile detection assumes conventional profile names and plugin usage.
+- On macOS, Java may still appear in the Dock even with `-Djava.awt.headless=true`. Add `-Dapple.awt.UIElement=true` to fully suppress the Dock icon.
 
 ---
 
@@ -228,11 +230,11 @@ Use the `AEM: Scaffold` command to create new AEM projects or modules with Adobe
 
 Managing local AEM development can be tedious:
 
-* Juggling multiple terminals to control Author and Publish
-* Copying and extracting new SDK files manually
-* Forgetting steps or flags when switching environments
-* Running Maven in the wrong directory and wondering why changes didn’t apply
-* Repeatedly typing the same flags (`-DskipTests`, `-PautoInstallPackage`, etc.)
+- Juggling multiple terminals to control Author and Publish
+- Copying and extracting new SDK files manually
+- Forgetting steps or flags when switching environments
+- Running Maven in the wrong directory and wondering why changes didn’t apply
+- Repeatedly typing the same flags (`-DskipTests`, `-PautoInstallPackage`, etc.)
 
 This extension automates those workflows to help you stay focused on development.
 
@@ -241,4 +243,4 @@ This extension automates those workflows to help you stay focused on development
 
 ---
 
-*This extension was developed for personal use. It may not be as robust as official tools, but it aims to simplify common AEM dev tasks inside VS Code.*
+_This extension was developed for personal use. It may not be as robust as official tools, but it aims to simplify common AEM dev tasks inside VS Code._
