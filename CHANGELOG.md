@@ -4,6 +4,15 @@ All notable changes to the "vscode-aem" extension will be documented in this fil
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.1.1] - 2025-06-16
+
+- Bump version to 0.1.1.
+- Improved CLI build and publish process for npm compatibility.
+- Added npm badge and updated CLI install instructions in README.
+- Added .npmignore to restrict npm package contents to CLI only.
+- Improved esbuild config for version injection and multi-entry builds.
+- Various bug fixes and documentation updates.
+
 ## [0.1.0] - 2025-06-16
 
 - Major CLI, library, and test suite refactor for modularity, maintainability, and robust config handling.
