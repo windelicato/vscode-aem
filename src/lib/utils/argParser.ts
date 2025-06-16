@@ -56,6 +56,8 @@
  *   // opts: { dryRun: true, test: "foo", include: ["a", "b"], others: ["bar", "baz"], errors: [] }
  */
 
+import shellQuote from "shell-quote";
+
 export enum ArgType {
   Flag = "flag",
   Value = "value",
@@ -110,8 +112,9 @@ export function parseArgs<T extends ArgDefinitions>(
         },
       };
 
-  const args = input.trim().split(/\s+/);
-  if (args.includes('--help') || args.includes('-h')) {
+  // Use shell-quote to split input robustly
+  const args = shellQuote.parse(input).map(String);
+  if (args.includes("--help") || args.includes("-h")) {
     // Print help and exit
     // @ts-ignore
     console.log(generateHelp(argDefs));

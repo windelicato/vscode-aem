@@ -1,65 +1,57 @@
-import * as assert from 'assert';
-import * as sinon from 'sinon';
-import * as vscode from 'vscode';
-import { AemScaffoldHelper } from '../aem/scaffold/helper';
+import * as assert from "assert";
+import { ScaffoldCommand } from "../../lib/scaffold/scaffold";
+import * as path from "path";
 
-suite('AemScaffoldHelper VS Code Extension Command', () => {
-	test('runs scaffold with user input and sends correct command to terminal', async () => {
-		// Arrange: stub VS Code APIs
-		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox');
-		showInputBoxStub.onFirstCall().resolves('My App'); // App Title
-		showInputBoxStub.onSecondCall().resolves('mysite'); // Package Name (short, no spaces)
+declare const suite: Mocha.SuiteFunction;
+declare const setup: Mocha.HookFunction;
+declare const teardown: Mocha.HookFunction;
+declare const test: Mocha.TestFunction;
 
-		const getConfigStub = sinon.stub(vscode.workspace, 'getConfiguration');
-		getConfigStub.returns({
-			get: (key: string, def: any) => {
-				if (key === 'scaffoldArgs') { return '-DgroupId={packageName} -DappTitle="{appTitle}"'; }
-				if (key === 'archetypePluginVersion') { return '3.3.1'; }
-				return def;
-			}
-		} as any);
-
-		let sentCommand = '';
-		const fakeTerminal = {
-			name: 'AEM Scaffold',
-			show: sinon.spy(),
-			sendText: (cmd: string) => { sentCommand = cmd; }
-		};
-		const terminalsStub = sinon.stub(vscode.window, 'terminals').value([]);
-		const createTerminalStub = sinon.stub(vscode.window, 'createTerminal').returns(fakeTerminal as any);
-
-		// Act
-		await AemScaffoldHelper.runScaffold();
-
-		// Assert
-		assert.ok(sentCommand.startsWith('mvn -B org.apache.maven.plugins:maven-archetype-plugin:3.3.1:generate'), 'Command should start with archetype generate');
-		assert.ok(createTerminalStub.calledOnce, 'Terminal should be created');
-		assert.ok((fakeTerminal.show as sinon.SinonSpy).calledOnce, 'Terminal should be shown');
-
-		// Cleanup
-		showInputBoxStub.restore();
-		getConfigStub.restore();
-		terminalsStub.restore();
-		createTerminalStub.restore();
-	});
-
-	test('shows warning if app title is missing', async () => {
-		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').onFirstCall().resolves(undefined);
-		const showWarningStub = sinon.stub(vscode.window, 'showWarningMessage');
-		await AemScaffoldHelper.runScaffold();
-		assert.ok(showWarningStub.calledWith('App Title is required.'));
-		showInputBoxStub.restore();
-		showWarningStub.restore();
-	});
-
-	test('shows warning if package name is missing', async () => {
-		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox');
-		showInputBoxStub.onFirstCall().resolves('My App');
-		showInputBoxStub.onSecondCall().resolves(undefined);
-		const showWarningStub = sinon.stub(vscode.window, 'showWarningMessage');
-		await AemScaffoldHelper.runScaffold();
-		assert.ok(showWarningStub.calledWith('Java package name is required.'));
-		showInputBoxStub.restore();
-		showWarningStub.restore();
-	});
+suite("ScaffoldCommand", () => {
+  let config: any;
+  let fixtureRoot: string;
+  setup(() => {
+    fixtureRoot = path.resolve(__dirname, "../../../src/vscode/test/fixtures");
+    config = {
+      scaffold: {
+        scaffoldArgs: '-DgroupId={packageName} -DappTitle="{appTitle}"',
+        archetypePluginVersion: "3.3.1",
+      },
+    };
+  });
+  test("creates correct maven command from input", async () => {
+    const input = '--appTitle "My App" --packageName mysite';
+    const scaffoldCmd = new ScaffoldCommand(config as any);
+    const { command, cwd } = await scaffoldCmd.create(input);
+    assert.ok(
+      command.startsWith(
+        "mvn -B org.apache.maven.plugins:maven-archetype-plugin:3.3.1:generate"
+      ),
+      "Command should start with archetype generate"
+    );
+    assert.ok(
+      command.includes("-DgroupId=mysite"),
+      "Command should include groupId"
+    );
+    assert.ok(
+      command.includes('-DappTitle="My App"'),
+      "Command should include appTitle"
+    );
+    assert.strictEqual(
+      cwd,
+      process.cwd(),
+      "cwd should be current working directory"
+    );
+  });
+  test("throws error if required arguments are missing", async () => {
+    const scaffoldCmd = new ScaffoldCommand(config as any);
+    await assert.rejects(
+      scaffoldCmd.create('--appTitle "My App"'),
+      /Argument parsing errors: Missing required argument: packageName/
+    );
+    await assert.rejects(
+      scaffoldCmd.create("--packageName mysite"),
+      /Argument parsing errors: Missing required argument: appTitle/
+    );
+  });
 });

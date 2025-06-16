@@ -65,13 +65,20 @@ export class MavenCommand extends Command<typeof MavenCommand.ARGUMENTS> {
     if (!target) {
       throw new Error("Could not determine target Maven module.");
     }
-    const goal = opts.build ? "install" : this.config.maven.mavenInstallCommand;
+    // Use mavenInstallCommand from config if set, otherwise default to 'clean install'
+    const goal =
+      this.config.maven.mavenInstallCommand ||
+      (opts.build ? "clean install" : "install");
     const args = this.config.maven.mavenArguments;
-    const profilePart = target.targetProfile ? `-P${target.targetProfile}` : "";
+    // Only include profilePart if not building (i.e., --build is not set)
+    const profilePart =
+      !opts.build && target.targetProfile ? `-P${target.targetProfile}` : "";
     const skipTestsPart =
       opts.skipTests || this.config.maven.skipTests ? "-DskipTests" : "";
-    const command =
-      `mvn ${args} ${goal} ${profilePart} ${skipTestsPart}`.trim();
+    const parts = ["mvn", args, goal, profilePart, skipTestsPart].filter(
+      Boolean
+    );
+    const command = parts.join(" ");
     if (opts.dryRun || this.config.maven.dryRun) {
       const echoCmd = `echo [DRY RUN] Would run: ${command} in ${target.absolutePath}`;
       return { cwd: target.absolutePath, command: echoCmd };
@@ -82,8 +89,8 @@ export class MavenCommand extends Command<typeof MavenCommand.ARGUMENTS> {
   async run(input: string, cwd?: string): Promise<void> {
     const { cwd: runCwd, command } = await this.create(input);
     // If dry run, just print the command, don't execute
-    if (command.startsWith('echo [DRY RUN]')) {
-      console.log(command.replace(/^echo /, ''));
+    if (command.startsWith("echo [DRY RUN]")) {
+      console.log(command.replace(/^echo /, ""));
       return;
     }
     execSync(command, {

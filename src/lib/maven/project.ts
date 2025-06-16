@@ -65,7 +65,13 @@ export class MavenProject implements MavenProjectData {
     const rootPath = path.parse(dir).root;
     while (dir !== rootPath) {
       const pomPath = path.join(dir, "pom.xml");
-      await fs.access(pomPath);
+      try {
+        await fs.access(pomPath);
+      } catch (err) {
+        // If pom.xml does not exist, go up one directory
+        dir = path.dirname(dir);
+        continue;
+      }
       const module = await MavenModule.load(dir);
 
       // Wait until we have a root module
