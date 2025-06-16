@@ -256,7 +256,7 @@
     }
   },
   "bin": {
-    "aem": "dist/cli/aem.js"
+    "aem": "./dist/cli/aem.js"
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
@@ -291,9 +291,9 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "commander": "^14.0.0",
     "fast-xml-parser": "^5.2.5",
-    "unzipper": "^0.12.3"
+    "unzipper": "^0.12.3",
+    "ps-list": "^8.0.0"
   },
   "publisher": "windelicato",
   "icon": "images/logo.png",

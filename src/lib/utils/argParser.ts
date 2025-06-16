@@ -111,6 +111,13 @@ export function parseArgs<T extends ArgDefinitions>(
       };
 
   const args = input.trim().split(/\s+/);
+  if (args.includes('--help') || args.includes('-h')) {
+    // Print help and exit
+    // @ts-ignore
+    console.log(generateHelp(argDefs));
+    process.exit(0);
+  }
+
   const opts = {} as ParsedArgs<typeof argDefs>;
   const positionalKeys = Object.keys(argDefs).filter(
     (k) => argDefs[k].type === ArgType.Positional

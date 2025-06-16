@@ -81,6 +81,11 @@ export class MavenCommand extends Command<typeof MavenCommand.ARGUMENTS> {
 
   async run(input: string, cwd?: string): Promise<void> {
     const { cwd: runCwd, command } = await this.create(input);
+    // If dry run, just print the command, don't execute
+    if (command.startsWith('echo [DRY RUN]')) {
+      console.log(command.replace(/^echo /, ''));
+      return;
+    }
     execSync(command, {
       cwd: runCwd,
       stdio: "inherit",

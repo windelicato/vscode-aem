@@ -29,10 +29,6 @@ export class ScaffoldCommand extends Command<typeof ScaffoldCommand.ARGUMENTS> {
       default: "3.3.1",
       required: false,
     },
-    targetDir: {
-      type: ArgType.Positional,
-      description: "Target directory for scaffolding (positional argument)",
-    },
   };
 
   readonly name = "scaffold";
@@ -45,7 +41,6 @@ export class ScaffoldCommand extends Command<typeof ScaffoldCommand.ARGUMENTS> {
       throw new Error(`Argument parsing errors: ${opts.errors.join(", ")}`);
     }
     const currentDirectory = process.cwd();
-    const targetDir = opts.targetDir || currentDirectory;
     const archetypeVersion =
       opts.archetypePluginVersion ||
       this.config.scaffold.archetypePluginVersion;
@@ -67,11 +62,12 @@ export class ScaffoldCommand extends Command<typeof ScaffoldCommand.ARGUMENTS> {
 
     const command =
       `mvn -B org.apache.maven.plugins:maven-archetype-plugin:${archetypeVersion}:generate ${scaffoldArgs}`.trim();
-    return { cwd: targetDir, command };
+    return { cwd: currentDirectory, command };
   }
 
   async run(input: string, cwd?: string): Promise<void> {
     const { cwd: runCwd, command } = await this.create(input);
+    console.log(`[scaffold] Running:`, command, 'in', runCwd);
     execSync(command, {
       cwd: runCwd,
       stdio: "inherit",
