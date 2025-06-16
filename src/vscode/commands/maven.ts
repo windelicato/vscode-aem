@@ -51,7 +51,7 @@ export function registerMaven(context: vscode.ExtensionContext) {
         let cmdResult;
         try {
           const mavenCmd = new MavenCommand(libConfig);
-          cmdResult = await mavenCmd.create(input || "");
+          cmdResult = await mavenCmd.create(input || "", cwd);
         } catch (err) {
           vscode.window.showErrorMessage(
             `Failed to build Maven command: ${err}`

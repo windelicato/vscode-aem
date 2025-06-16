@@ -35,12 +35,15 @@ export class ScaffoldCommand extends Command<typeof ScaffoldCommand.ARGUMENTS> {
   readonly description = "Scaffold a new AEM project using Maven archetype.";
   readonly arguments = ScaffoldCommand.ARGUMENTS;
 
-  async create(input: string) {
+  async create(
+    input: string,
+    cwd?: string
+  ): Promise<{ cwd: string; command: string }> {
     const opts = parseArgs(input, this.arguments);
     if (opts.errors.length > 0) {
       throw new Error(`Argument parsing errors: ${opts.errors.join(", ")}`);
     }
-    const currentDirectory = process.cwd();
+    const currentDirectory = cwd || process.cwd();
     const archetypeVersion =
       opts.archetypePluginVersion ||
       this.config.scaffold.archetypePluginVersion;
@@ -66,8 +69,8 @@ export class ScaffoldCommand extends Command<typeof ScaffoldCommand.ARGUMENTS> {
   }
 
   async run(input: string, cwd?: string): Promise<void> {
-    const { cwd: runCwd, command } = await this.create(input);
-    console.log(`[scaffold] Running:`, command, 'in', runCwd);
+    const { cwd: runCwd, command } = await this.create(input, cwd);
+    console.log(`[scaffold] Running:`, command, "in", runCwd);
     execSync(command, {
       cwd: runCwd,
       stdio: "inherit",

@@ -39,7 +39,7 @@ export function registerScaffold(context: vscode.ExtensionContext) {
       let cmdResult;
       try {
         const scaffoldCmd = new ScaffoldCommand(aemConfig);
-        cmdResult = await scaffoldCmd.create(input);
+        cmdResult = await scaffoldCmd.create(input, workspaceRoot);
       } catch (err) {
         vscode.window.showErrorMessage(
           `Failed to build scaffold command: ${err}`

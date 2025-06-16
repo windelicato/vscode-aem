@@ -23,7 +23,10 @@ export abstract class Command<T extends ArgDefinitions, CbType = Function> {
     return `${this.name}: ${this.description}\n` + generateHelp(this.arguments);
   }
 
-  abstract create(input: string): Promise<{ cwd: string; command: string }>;
+  abstract create(
+    input: string,
+    cwd?: string
+  ): Promise<{ cwd: string; command: string }>;
 
   abstract run(input: string, cwd?: string, callback?: CbType): Promise<void>;
 }

@@ -9,9 +9,8 @@ export function registerSdkStatus(context: vscode.ExtensionContext) {
       const sdkStatusCmd = new SdkStatusCommand(libConfig);
       const globalOutputChannel = getGlobalOutputChannel();
       if (globalOutputChannel) {
-        globalOutputChannel.show(true);
         globalOutputChannel.clear();
-        globalOutputChannel.appendLine("AEM SDK Instance Status:");
+        globalOutputChannel.show(true);
       }
       await sdkStatusCmd.run("", undefined, (instance, status) => {
         if (globalOutputChannel) {

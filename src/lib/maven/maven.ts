@@ -35,12 +35,15 @@ export class MavenCommand extends Command<typeof MavenCommand.ARGUMENTS> {
     "Run Maven commands in the context of a resolved Maven project/module.";
   readonly arguments = MavenCommand.ARGUMENTS;
 
-  async create(input: string) {
+  async create(
+    input: string,
+    cwd?: string
+  ): Promise<{ cwd: string; command: string }> {
     const opts = parseArgs(input, this.arguments);
     if (opts.errors.length > 0) {
       throw new Error(`Argument parsing errors: ${opts.errors.join(", ")}`);
     }
-    const currentDirectory = process.cwd();
+    const currentDirectory = cwd ?? process.cwd();
     const project = await MavenProject.load(currentDirectory);
     if (!project) {
       throw new Error(
@@ -87,7 +90,7 @@ export class MavenCommand extends Command<typeof MavenCommand.ARGUMENTS> {
   }
 
   async run(input: string, cwd?: string): Promise<void> {
-    const { cwd: runCwd, command } = await this.create(input);
+    const { cwd: runCwd, command } = await this.create(input, cwd);
     // If dry run, just print the command, don't execute
     if (command.startsWith("echo [DRY RUN]")) {
       console.log(command.replace(/^echo /, ""));

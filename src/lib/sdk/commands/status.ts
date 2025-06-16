@@ -32,6 +32,11 @@ export class SdkStatusCommand extends Command<
   ): Promise<void> {
     const opts = parseArgs(input, this.arguments);
     const config = this.config.sdk;
+    if (onData) {
+      onData(`${config.home}`, "AEM SDK Instance Status:");
+    } else {
+      console.log(`${config.home}: "AEM SDK Instance Status:"`);
+    }
     const instances = opts.instance
       ? config.instances.filter((i) => i.name === opts.instance)
       : config.instances;
