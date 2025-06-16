@@ -1,0 +1,29 @@
+import { ArgDefinitions, generateHelp } from "../utils/argParser";
+import { ResolvedConfig, loadConfigFile } from "../config/config";
+
+/**
+ * Base class for all commands. Provides consistent argument parsing,
+ * help generation, and error handling.
+ */
+export abstract class Command<T extends ArgDefinitions> {
+  abstract readonly name: string;
+  abstract readonly description: string;
+  abstract readonly arguments: T;
+  protected config: ResolvedConfig;
+
+  constructor(config?: ResolvedConfig) {
+    this.config = config || loadConfigFile();
+  }
+
+  getHelpText(): string {
+    return `${this.name}: ${this.description}\n` + generateHelp(this.arguments);
+  }
+
+  abstract create(input: string): { cwd: string; command: string };
+
+  abstract run(
+    input: string,
+    cwd?: string,
+    callback?: (fn: Function) => void
+  ): Promise<void>;
+}
