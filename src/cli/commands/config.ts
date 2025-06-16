@@ -30,6 +30,37 @@ export function handleConfigCommand(subcmd: string, args: string[]) {
     const config = loadConfigFile();
     console.log(JSON.stringify(config, null, 2));
     process.exit(0);
+  } else if (subcmd === "env") {
+    // Print environment variable overrides for config fields
+    const overrides: Record<string, string> = {};
+    for (const [section, schema] of Object.entries(configSchema)) {
+      for (const [key, resolver] of Object.entries(schema)) {
+        if (resolver.env && process.env[resolver.env] !== undefined) {
+          overrides[`${section}.${key}`] = process.env[resolver.env] as string;
+        }
+      }
+    }
+    if (Object.keys(overrides).length === 0) {
+      console.log("No config environment variable overrides set.");
+    } else {
+      console.log("Config environment variable overrides:");
+      for (const [field, value] of Object.entries(overrides)) {
+        console.log(`${field} = ${value}`);
+      }
+    }
+    process.exit(0);
+  } else if (subcmd === "env-list") {
+    // Print all available config environment variables and their descriptions
+    console.log("Available config environment variables:");
+    for (const [section, schema] of Object.entries(configSchema)) {
+      for (const [key, resolver] of Object.entries(schema)) {
+        if (resolver.env) {
+          const desc = resolver.description ? ` - ${resolver.description}` : "";
+          console.log(`${resolver.env} (${section}.${key})${desc}`);
+        }
+      }
+    }
+    process.exit(0);
   } else {
     throw new Error("Unknown config subcommand: " + subcmd);
   }

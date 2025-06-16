@@ -32,7 +32,8 @@ export const sdkSchema: {
       { name: "author", port: 4502, debugPort: 5005, debug: false },
       { name: "publish", port: 4503, debugPort: 5006, debug: false },
     ],
-    description: "AEM SDK instances configuration",
+    description:
+      "AEM SDK instances configuration. MUST BE SET IN .aemrc.json OR VSCODE SETTINGS",
   },
   requiredJavaVersion: {
     env: "AEM_SDK_REQUIRED_JAVA_VERSION",

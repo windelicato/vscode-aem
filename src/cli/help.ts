@@ -9,10 +9,10 @@ import { generateHelp } from "../lib/utils/argParser";
 
 const HELP_TEXT = `AEM Helper CLI
 
-Usage:
+USAGE
   aem <command> [subcommand] [options]
 
-Commands:
+COMMANDS
   sdk start         Start the AEM SDK
   sdk stop          Stop the AEM SDK
   sdk status        Show AEM SDK status
@@ -20,11 +20,19 @@ Commands:
   sdk setup         Setup the AEM SDK
   maven [module]    Run Maven install (optionally for a module)
   scaffold          Scaffold a new AEM project
-  config init       Generate a default config file (see below)
+  config init       Generate a default config file
   config show       Show the fully resolved config
+  config env        Show environment variable overrides for config
+  config env-list   List all available config environment variables
   help              Show this help message
 
 For command-specific help, use aem <command> --help.
+
+CONFIGURATION
+  - By default, configuration is loaded from .aemrc.json in the current directory.
+  - You can set the AEM_CONFIG_PATH environment variable to use a custom config file path.
+  - Any config value can be overridden by setting its documented environment variable.
+  - Run 'aem config env-list' to see all available environment variable overrides.
 `;
 
 export function printHelp() {
@@ -69,11 +77,14 @@ export function printSubcommandHelp(command: string, subcommand?: string) {
       `aem config init
   Generate a default config file.
 
-  By default, writes to .aemrc.json in the current directory.
-  Set the AEM_CONFIG_PATH environment variable to change the location.
-
 aem config show
   Show the fully resolved config (including env overrides and defaults).
+
+aem config env
+  Show environment variable overrides currently set for config fields.
+
+aem config env-list
+  List all available config environment variables and their descriptions.
 `
     );
   } else {
