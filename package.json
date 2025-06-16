@@ -2,7 +2,7 @@
   "name": "vscode-aem",
   "displayName": "vscode-aem",
   "description": "AEM Local Development Toolkit",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -10,7 +10,7 @@
     "Other"
   ],
   "activationEvents": [],
-  "main": "./dist/extension.js",
+  "main": "./dist/vscode/extension.js",
   "contributes": {
     "commands": [
       {
@@ -103,19 +103,19 @@
       "type": "object",
       "title": "AEM VSCode",
       "properties": {
-        "aemMavenHelper.skipTests": {
+        "aem.maven.skipTests": {
           "type": "boolean",
           "default": false,
           "description": "Skip running tests during Maven build (-DskipTests).",
           "order": 1
         },
-        "aemMavenHelper.dryRun": {
+        "aem.maven.dryRun": {
           "type": "boolean",
           "default": false,
           "description": "Show the Maven command that would be run, but do not execute it.",
           "order": 2
         },
-        "aemMavenHelper.defaultGoal": {
+        "aem.maven.defaultGoal": {
           "type": "string",
           "enum": [
             "build",
@@ -125,7 +125,7 @@
           "description": "Default Maven goal to use when neither 'build' nor 'install' is specified. Choose 'build' for 'mvn clean install' or 'install' for 'mvn install'.",
           "order": 3
         },
-        "aemMaven.outputMode": {
+        "aem.maven.outputMode": {
           "type": "string",
           "enum": [
             "terminal",
@@ -139,40 +139,40 @@
           ],
           "order": 4
         },
-        "aemMaven.mavenArguments": {
+        "aem.maven.mavenArguments": {
           "type": "string",
           "default": "",
           "description": "Additional arguments to pass to Maven (e.g. --debug, --errors). These will be appended to the Maven command.",
           "order": 4.5,
           "markdownDescription": "Additional arguments to pass to Maven (e.g. `--debug`, `--errors`). These will be appended to the Maven command."
         },
-        "aemMaven.mavenInstallCommand": {
+        "aem.maven.mavenInstallCommand": {
           "type": "string",
           "default": "clean install",
           "description": "The Maven goals/phase to run after 'mvn' and arguments. Default is 'clean install'. You can change this to e.g. 'install', 'verify', etc.",
           "order": 4.6,
           "markdownDescription": "The Maven goals/phase to run after 'mvn' and arguments. Default is `clean install`. You can change this to e.g. `install`, `verify`, etc."
         },
-        "aemScaffold.scaffoldArgs": {
+        "aem.scaffold.scaffoldArgs": {
           "type": "string",
           "default": "-DarchetypeGroupId=com.adobe.aem \n-DarchetypeArtifactId=aem-project-archetype \n-DarchetypeVersion=53 \n-DgroupId=com.{packageName} \n-DartifactId={packageName} \n-Dversion=1.0-SNAPSHOT \n-Dpackage=com.{packageName} \n-DappId={packageName} \n-DappTitle=\"{appTitle}\" \n-DfrontendModule=general \n-DsingleCountry=y \n-DincludeExamples=n \n-DincludeErrorHandler=n \n-DincludeDispatcherConfig=n \n-DincludeCif=n \n-DincludeForms=n \n-DincludeFormsenrollment=y \n-DincludeFormscommunications=y \n-DsdkFormsVersion=latest \n-DcommerceEndpoint=https://hostname.com/graphql \n-Ddatalayer=y \n-Damp=n \n-DenableDynamicMedia=y \n-DenableSSR=n \n-DprecompiledScripts=n \n-DuiTestingFramework=cypress",
           "description": "Arguments to pass to the AEM project archetype when scaffolding a new project. Supports variable injection: {packageName} and {appTitle} will be replaced with your input or settings.",
           "order": 5,
           "markdownDescription": "Arguments to pass to the AEM project archetype when scaffolding a new project. Supports variable injection: `{packageName}` and `{appTitle}` will be replaced with your input or settings."
         },
-        "aemScaffold.archetypePluginVersion": {
+        "aem.scaffold.archetypePluginVersion": {
           "type": "string",
           "default": "3.3.1",
           "description": "Version of the Maven Archetype Plugin to use for scaffolding.",
           "order": 6
         },
-        "aemSDK.sdkHome": {
+        "aem.sdk.home": {
           "type": "string",
           "default": "",
           "description": "Path to your AEM SDK root directory (AEM_SDK_HOME). Must be set explicitly.",
           "order": 7
         },
-        "aemSDK.instances": {
+        "aem.sdk.instances": {
           "type": "array",
           "description": "AEM instance definitions (author, publisher, etc). Each instance can have a name, port, and debugPort.",
           "items": {
@@ -216,37 +216,37 @@
           ],
           "order": 8
         },
-        "aemSDK.requiredJavaVersion": {
+        "aem.sdk.requiredJavaVersion": {
           "type": "number",
           "default": 11,
           "description": "Required Java version for AEM SDK (AEM_JAVA_VERSION).",
           "order": 10
         },
-        "aemSDK.passwordFile": {
+        "aem.sdk.passwordFile": {
           "type": "string",
           "default": "aem-password",
           "description": "Password file for AEM admin user.",
           "order": 11
         },
-        "aemSDK.jvmOpts": {
+        "aem.sdk.jvmOpts": {
           "type": "string",
           "default": "-Djava.awt.headless=true",
           "description": "JVM options for AEM SDK.",
           "order": 12
         },
-        "aemSDK.jvmDebugBaseOpts": {
+        "aem.sdk.jvmDebugBaseOpts": {
           "type": "string",
           "default": "-Djava.awt.headless=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n",
           "description": "JVM debug options for AEM SDK.",
           "order": 13
         },
-        "aemSDK.quickstartPath": {
+        "aem.sdk.quickstartPath": {
           "type": "string",
           "default": "",
           "description": "(Advanced) Path to your AEM SDK Quickstart JAR or ZIP file. Set by the setup command. Edit in settings.json only.",
           "order": 100
         },
-        "aemSDK.formsAddonPath": {
+        "aem.sdk.formsAddonPath": {
           "type": "string",
           "default": "",
           "description": "(Advanced) Path to your AEM Forms Add-on (optional, .far or .zip). Set by the setup command. Edit in settings.json only.",
@@ -254,6 +254,9 @@
         }
       }
     }
+  },
+  "bin": {
+    "aem": "./dist/cli/aem.js"
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
@@ -268,13 +271,16 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vscode-test",
-    "build:cli": "esbuild src/aem/maven/helper.ts --bundle --platform=node --outfile=dist/aem/maven/helper.js --format=cjs --external:unzipper"
+    "build:cli": "esbuild src/cli/aem.ts --bundle --platform=node --outfile=dist/cli/aem.js --format=cjs --external:@aws-sdk/client-s3",
+    "test:cli": "mocha -r ts-node/register src/cli/test/**/*.ts"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/mock-fs": "^4.13.4",
     "@types/node": "20.x",
+    "@types/shell-quote": "^1.7.5",
     "@types/sinon": "^17.0.4",
+    "@types/unzipper": "^0.10.11",
     "@types/vscode": "^1.100.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
@@ -285,10 +291,12 @@
     "mock-fs": "^5.5.0",
     "npm-run-all": "^4.1.5",
     "sinon": "^20.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },
   "dependencies": {
     "fast-xml-parser": "^5.2.5",
+    "shell-quote": "^1.8.3",
     "unzipper": "^0.12.3"
   },
   "publisher": "windelicato",
