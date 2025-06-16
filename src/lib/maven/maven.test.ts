@@ -1,4 +1,4 @@
-import { getCommand, runCommand } from "./maven";
+import { MavenCommand } from "./maven";
 import { MavenProject } from "./project";
 import assert from "assert";
 import sinon from "sinon";
@@ -7,7 +7,7 @@ import type { ResolvedConfig } from "../config/config";
 // Mock dependencies
 // We'll use sinon for spies and stubs
 
-describe("runCommand/getCommand", () => {
+describe("MavenCommand", () => {
   let mockProject: any;
   let config: ResolvedConfig;
   let consoleLogStub: sinon.SinonStub;
@@ -63,7 +63,8 @@ describe("runCommand/getCommand", () => {
       absolutePath: "/mod",
       profiles: ["profile1"],
     });
-    const result = await getCommand(config, "--dry-run /mod");
+    const mavenCmd = new MavenCommand(config);
+    const result = await mavenCmd.create("--dry-run /mod");
     assert(result && result.command.includes("[DRY RUN]"));
   });
 
@@ -73,20 +74,23 @@ describe("runCommand/getCommand", () => {
       absolutePath: "/root/mod",
       profiles: ["profile2"],
     });
-    const result = await getCommand(config, "--dry-run");
+    const mavenCmd = new MavenCommand(config);
+    const result = await mavenCmd.create("--dry-run");
     assert(result && result.command.includes("[DRY RUN]"));
   });
 
   it("prints error if no project found", async () => {
     (MavenProject.load as sinon.SinonStub).resolves(null);
-    const result = await getCommand(config, "--dry-run");
+    const mavenCmd = new MavenCommand(config);
+    const result = await mavenCmd.create("--dry-run");
     assert.strictEqual(result, undefined);
   });
 
   it("prints error if no target module found", async () => {
     mockProject.getModule.returns(undefined);
     mockProject.findModuleByPath.returns(undefined);
-    const result = await getCommand(config, "--dry-run /notfound");
+    const mavenCmd = new MavenCommand(config);
+    const result = await mavenCmd.create("--dry-run /notfound");
     assert.strictEqual(result, undefined);
   });
 
@@ -97,16 +101,14 @@ describe("runCommand/getCommand", () => {
       absolutePath: winModule,
       profiles: ["profile1"],
     });
-    const result = await getCommand(
-      {
-        ...config,
-        sdk: {
-          ...config.sdk,
-          sdkHome: winCwd,
-        },
+    const mavenCmd = new MavenCommand({
+      ...config,
+      sdk: {
+        ...config.sdk,
+        sdkHome: winCwd,
       },
-      `--dry-run ${winModule}`
-    );
+    });
+    const result = await mavenCmd.create(`--dry-run ${winModule}`);
     assert(result && result.command.includes("[DRY RUN]"));
     assert(result && result.command.includes("mvn"));
     assert.ok(result && result.command.match(/C:\\repo\\project\\ui\.apps/));
@@ -119,16 +121,14 @@ describe("runCommand/getCommand", () => {
       absolutePath: "C:\\repo\\project\\ui.apps",
       profiles: ["profile2"],
     });
-    const result = await getCommand(
-      {
-        ...config,
-        sdk: {
-          ...config.sdk,
-          sdkHome: winCwd,
-        },
+    const mavenCmd = new MavenCommand({
+      ...config,
+      sdk: {
+        ...config.sdk,
+        sdkHome: winCwd,
       },
-      "--dry-run"
-    );
+    });
+    const result = await mavenCmd.create("--dry-run");
     assert(result && result.command.includes("[DRY RUN]"));
     assert.ok(result && result.command.match(/C:\\repo\\project\\ui\.apps/));
   });
@@ -138,17 +138,15 @@ describe("runCommand/getCommand", () => {
       absolutePath: "/mod",
       profiles: ["profile1"],
     });
-    const result = await getCommand(
-      {
-        ...config,
-        maven: {
-          ...config.maven,
-          mavenInstallCommand: "verify",
-          mavenArguments: "--debug",
-        },
+    const mavenCmd = new MavenCommand({
+      ...config,
+      maven: {
+        ...config.maven,
+        mavenInstallCommand: "verify",
+        mavenArguments: "--debug",
       },
-      "--dry-run /mod"
-    );
+    });
+    const result = await mavenCmd.create("--dry-run /mod");
     assert(result && result.command.includes("mvn --debug verify"));
   });
 
@@ -157,7 +155,8 @@ describe("runCommand/getCommand", () => {
       absolutePath: "/mod",
       profiles: ["profile1"],
     });
-    const result = await getCommand(config, "--dry-run --skip-tests /mod");
+    const mavenCmd = new MavenCommand(config);
+    const result = await mavenCmd.create("--dry-run --skip-tests /mod");
     assert.ok(result && result.command.includes("-DskipTests"));
   });
 
@@ -166,16 +165,14 @@ describe("runCommand/getCommand", () => {
       absolutePath: "/mod",
       profiles: ["profile1"],
     });
-    const result = await getCommand(
-      {
-        ...config,
-        maven: {
-          ...config.maven,
-          skipTests: true,
-        },
+    const mavenCmd = new MavenCommand({
+      ...config,
+      maven: {
+        ...config.maven,
+        skipTests: true,
       },
-      "--dry-run /mod"
-    );
+    });
+    const result = await mavenCmd.create("--dry-run /mod");
     assert.ok(result && result.command.includes("-DskipTests"));
   });
 
@@ -184,13 +181,15 @@ describe("runCommand/getCommand", () => {
       absolutePath: "/mod",
       profiles: ["autoInstallPackage"],
     });
-    const result = await getCommand(config, "--dry-run /mod");
+    const mavenCmd = new MavenCommand(config);
+    const result = await mavenCmd.create("--dry-run /mod");
     assert.ok(result && result.command.includes("-PautoInstallPackage"));
   });
 
   it("does not set profile flag if no profile present", async () => {
     mockProject.getModule.returns({ absolutePath: "/mod", profiles: [] });
-    const result = await getCommand(config, "--dry-run /mod");
+    const mavenCmd = new MavenCommand(config);
+    const result = await mavenCmd.create("--dry-run /mod");
     assert.ok(result && !result.command.includes("-P"));
   });
 
@@ -201,16 +200,14 @@ describe("runCommand/getCommand", () => {
       absolutePath: "/repo/project/ui.apps",
       profiles: ["profile2"],
     });
-    const result = await getCommand(
-      {
-        ...config,
-        sdk: {
-          ...config.sdk,
-          sdkHome: deepCwd,
-        },
+    const mavenCmd = new MavenCommand({
+      ...config,
+      sdk: {
+        ...config.sdk,
+        sdkHome: deepCwd,
       },
-      "--dry-run"
-    );
+    });
+    const result = await mavenCmd.create("--dry-run");
     assert.ok(result && result.command.match(/ui\.apps/));
   });
 });

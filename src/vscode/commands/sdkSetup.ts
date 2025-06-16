@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { runCommand as runSetupCommand } from "../../lib/sdk/commands/setup";
+import { SdkSetupCommand } from "../../lib/sdk/commands/setup";
 import { getFullConfig } from "../extensionUtils";
 
 export function registerSdkSetup(context: vscode.ExtensionContext) {
@@ -63,6 +63,7 @@ export function registerSdkSetup(context: vscode.ExtensionContext) {
       if (formsAddonPath) {
         input += ` --formsAddonPath ${formsAddonPath}`;
       }
+      const sdkSetupCmd = new SdkSetupCommand(getFullConfig());
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
@@ -70,7 +71,7 @@ export function registerSdkSetup(context: vscode.ExtensionContext) {
           cancellable: false,
         },
         async (progress) => {
-          await runSetupCommand(getFullConfig().sdk, input, (msg: string) =>
+          await sdkSetupCmd.run(input, undefined, (msg: string) =>
             progress.report({ message: msg })
           );
         }

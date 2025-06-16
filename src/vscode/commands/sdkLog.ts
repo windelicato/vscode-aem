@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { runCommand as runLogCommand } from "../../lib/sdk/commands/log";
+import { SdkLogCommand } from "../../lib/sdk/commands/log";
 import { getFullConfig } from "../extensionUtils";
 
 export function registerSdkLog(context: vscode.ExtensionContext) {
@@ -38,13 +38,10 @@ export function registerSdkLog(context: vscode.ExtensionContext) {
       if (instanceName) {
         inputArgs += ` --instance ${instanceName}`;
       }
-      await runLogCommand(
-        libConfig.sdk,
-        inputArgs,
-        (instance, data, isError) => {
-          logOutputChannel.append(`[${instance}] ${data}`);
-        }
-      );
+      const sdkLogCmd = new SdkLogCommand(libConfig);
+      await sdkLogCmd.run(inputArgs, undefined, (instance, data, isError) => {
+        logOutputChannel.append(`[${instance}] ${data}`);
+      });
     })
   );
 }

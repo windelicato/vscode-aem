@@ -1,11 +1,12 @@
 import * as vscode from "vscode";
-import { runCommand as runStopCommand } from "../../lib/sdk/commands/stop";
+import { SdkStopCommand } from "../../lib/sdk/commands/stop";
 import { getFullConfig } from "../extensionUtils";
 
 export function registerSdkStop(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("vscode-aem.sdk.stop", async () => {
       const libConfig = getFullConfig();
+      const sdkStopCmd = new SdkStopCommand(libConfig);
       vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
@@ -13,7 +14,7 @@ export function registerSdkStop(context: vscode.ExtensionContext) {
           cancellable: false,
         },
         async (progress) => {
-          await runStopCommand(libConfig.sdk, "", (instance, msg, done) => {
+          await sdkStopCmd.run("", undefined, (instance, msg, done) => {
             progress.report({ message: `[${instance}] ${msg}` });
           });
         }

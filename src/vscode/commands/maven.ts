@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { getCommand as getMavenCommand } from "../../lib/maven/maven";
+import { MavenCommand } from "../../lib/maven/maven";
 import {
   getFullConfig,
   getGlobalOutputChannel,
@@ -50,7 +50,8 @@ export function registerMaven(context: vscode.ExtensionContext) {
         }
         let cmdResult;
         try {
-          cmdResult = await getMavenCommand(libConfig, input || "", cwd);
+          const mavenCmd = new MavenCommand(libConfig);
+          cmdResult = await mavenCmd.create(input || "");
         } catch (err) {
           vscode.window.showErrorMessage(
             `Failed to build Maven command: ${err}`

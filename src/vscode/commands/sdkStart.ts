@@ -1,11 +1,12 @@
 import * as vscode from "vscode";
-import { runCommand as runStartCommand } from "../../lib/sdk/commands/start";
+import { SdkStartCommand } from "../../lib/sdk/commands/start";
 import { getFullConfig } from "../extensionUtils";
 
 export function registerSdkStart(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("vscode-aem.sdk.start", async () => {
       const libConfig = getFullConfig();
+      const sdkStartCmd = new SdkStartCommand(libConfig);
       vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
@@ -13,7 +14,7 @@ export function registerSdkStart(context: vscode.ExtensionContext) {
           cancellable: false,
         },
         async (progress) => {
-          await runStartCommand(libConfig.sdk, "", (instance, msg, done) => {
+          await sdkStartCmd.run("", undefined, (instance, msg, done) => {
             progress.report({ message: `[${instance}] ${msg}` });
           });
         }

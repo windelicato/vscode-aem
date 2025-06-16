@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { getCommand as getScaffoldCommand } from "../../lib/scaffold/scaffold";
+import { ScaffoldCommand } from "../../lib/scaffold/scaffold";
 import { getFullConfig, getGlobalTerminal } from "../extensionUtils";
 
 export function registerScaffold(context: vscode.ExtensionContext) {
@@ -38,11 +38,8 @@ export function registerScaffold(context: vscode.ExtensionContext) {
       const input = `--appTitle ${appTitle} --packageName ${packageName}`;
       let cmdResult;
       try {
-        cmdResult = getScaffoldCommand(
-          aemConfig.scaffold,
-          input,
-          workspaceRoot
-        );
+        const scaffoldCmd = new ScaffoldCommand(aemConfig);
+        cmdResult = await scaffoldCmd.create(input);
       } catch (err) {
         vscode.window.showErrorMessage(
           `Failed to build scaffold command: ${err}`
