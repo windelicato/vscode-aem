@@ -95,39 +95,6 @@ Use the `AEM Maven Helper` command to run Maven builds based on the file or fold
 
 ---
 
-## CLI Integration
-
-This extension includes `run-aem-helper.js` to run Maven logic from your terminal:
-
-1. **Make it executable:**
-
-   ```sh
-   chmod +x run-aem-helper.js
-   ```
-
-2. **(Optional) Add to PATH:**
-
-   ```sh
-   export PATH="/path/to/vscode-aem:$PATH"
-   ```
-
-   Then:
-
-   ```sh
-   source ~/.zshrc  # or ~/.bashrc
-   ```
-
-3. **Run from anywhere:**
-
-   ```sh
-   run-aem-helper.js "ui.apps build skip-tests"
-   run-aem-helper.js  # auto-detects current module
-   ```
-
-> **Note:** Arguments are plain words (e.g., `core dry-run`). Flags like `--skip-tests` are not required.
-
----
-
 ## AEM SDK Helper
 
 ### Setting Up a Local AEM Instance (First Time)
@@ -189,32 +156,41 @@ Use the `AEM: Scaffold` command to create new AEM projects or modules with Adobe
 
 ---
 
-## Extension Settings
+# CLI Usage & Configuration
 
-### Maven
+The CLI now supports the full app configuration and all SDK/Maven/scaffold commands. You can use the CLI for local automation, scripting, or CI/CD.
 
-- `aemMavenHelper.skipTests`
-- `aemMavenHelper.dryRun`
-- `aemMavenHelper.defaultGoal`
-- `aemMaven.outputMode`
-- `aemMaven.mavenArguments`
-- `aemMaven.mavenInstallCommand`
+## Running the CLI
 
-### Scaffolding
+You can run the CLI entry point (e.g. `aem`) from your project root or any directory. All commands and options available in the VS Code extension are also available in the CLI.
 
-- `aemScaffold.scaffoldArgs`
-- `aemScaffold.archetypePluginVersion`
+Example:
 
-### SDK
+```sh
+aem sdk start
+aem sdk stop --instance author
+aem maven ui.apps build skip-tests
+aem scaffold project
+```
 
-- `aemSDK.home`
-- `aemSDK.instances`
-- `aemSDK.requiredJavaVersion`
-- `aemSDK.passwordFile`
-- `aemSDK.jvmOpts`
-- `aemSDK.jvmDebugBaseOpts`
-- `aemSDK.quickstartPath`
-- `aemSDK.formsAddonPath`
+## Configuration Commands
+
+The CLI provides a set of `aem config` subcommands to help you manage and inspect your configuration:
+
+- `aem config init [path]` Generate a default config file at the given path. If [path] is a directory, the file will be created as `.aemrc.json` inside that directory. If omitted, defaults to `.aemrc.json` in the current directory or the path set by `AEM_CONFIG_PATH`.
+- `aem config show` Show the fully resolved config (including env overrides and defaults).
+- `aem config path` Show the config file path currently in use.
+- `aem config validate [path]` Validate the config file at the given path. If [path] is a directory, `.aemrc.json` in that directory will be validated. If omitted, defaults to `.aemrc.json` in the current directory or the path set by `AEM_CONFIG_PATH`.
+- `aem config env` Show environment variable overrides currently set for config fields.
+- `aem config env-list` List all available config environment variables and their descriptions.
+
+## Configuration
+
+The CLI and extension share a unified configuration system. Configuration is loaded from (in order of precedence):
+
+1. The file specified by the `AEM_CONFIG_PATH` environment variable (if set)
+2. `.aemrc.json` in the current working directory
+3. `.aemrc.json` in your home directory
 
 ---
 
@@ -222,7 +198,7 @@ Use the `AEM: Scaffold` command to create new AEM projects or modules with Adobe
 
 - Only supports Maven-based AEM projects with standard archetype structure.
 - Profile detection assumes conventional profile names and plugin usage.
-- On macOS, Java may still appear in the Dock even with `-Djava.awt.headless=true`. Add `-Dapple.awt.UIElement=true` to fully suppress the Dock icon.
+- On macOS, Java may not boot in the background on first run
 
 ---
 

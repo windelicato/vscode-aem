@@ -68,9 +68,11 @@ export class SdkStartCommand extends Command<
       }
       if (!fs.existsSync(passwordFilePath)) {
         fs.writeFileSync(passwordFilePath, "admin");
-        console.log(
-          `[${instance.name}] Created password file: ${passwordFilePath}`
-        );
+        if (!onProgress) {
+          console.log(
+            `[${instance.name}] Created password file: ${passwordFilePath}`
+          );
+        }
       }
       const isWin = os.platform() === "win32";
       const scriptExists = fs.existsSync(startScript);
@@ -94,9 +96,11 @@ export class SdkStartCommand extends Command<
           }
         );
         child.on("close", (code) => {
-          console.log(
-            `[${instance.name}] Start script exited with code ${code}`
-          );
+          if (!onProgress) {
+            console.log(
+              `[${instance.name}] Start script exited with code ${code}`
+            );
+          }
         });
         child.unref();
         if (onProgress) {
@@ -116,7 +120,11 @@ export class SdkStartCommand extends Command<
           shell: isWin,
         });
         child.on("close", (code) => {
-          console.log(`[${instance.name}] java -jar exited with code ${code}`);
+          if (!onProgress) {
+            console.log(
+              `[${instance.name}] java -jar exited with code ${code}`
+            );
+          }
         });
         child.unref();
         if (onProgress) {
@@ -128,7 +136,9 @@ export class SdkStartCommand extends Command<
           require("fs").mkdirSync(confDir, { recursive: true });
         }
         require("fs").writeFileSync(pidFile, String(child.pid));
-        console.log(`[${instance.name}] PID file written: ${pidFile}`);
+        if (!onProgress) {
+          console.log(`[${instance.name}] PID file written: ${pidFile}`);
+        }
       }
       // Progress spinner: watch stdout.log for "Startup completed" after start
       if (onProgress) {

@@ -2,7 +2,7 @@
   "name": "vscode-aem",
   "displayName": "vscode-aem",
   "description": "AEM Local Development Toolkit",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -271,7 +271,8 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vscode-test",
-    "build:cli": "esbuild src/cli/aem.ts --bundle --platform=node --outfile=dist/cli/aem.js --format=cjs --external:unzipper"
+    "build:cli": "esbuild src/cli/aem.ts --bundle --platform=node --outfile=dist/cli/aem.js --format=cjs --external:@aws-sdk/client-s3",
+    "test:cli": "mocha -r ts-node/register src/cli/test/**/*.ts"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -279,6 +280,7 @@
     "@types/node": "20.x",
     "@types/shell-quote": "^1.7.5",
     "@types/sinon": "^17.0.4",
+    "@types/unzipper": "^0.10.11",
     "@types/vscode": "^1.100.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
@@ -289,6 +291,7 @@
     "mock-fs": "^5.5.0",
     "npm-run-all": "^4.1.5",
     "sinon": "^20.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },
   "dependencies": {

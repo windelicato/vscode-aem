@@ -74,7 +74,9 @@ export class SdkSetupCommand extends Command<
       if (progress) {
         progress(msg);
       }
-      console.error(msg);
+      if (!progress) {
+        console.error(msg);
+      }
       return;
     }
     let quickstartJar = await extractFileFromZip(
@@ -96,7 +98,9 @@ export class SdkSetupCommand extends Command<
         if (progress) {
           progress(msg);
         }
-        console.error(msg);
+        if (!progress) {
+          console.error(msg);
+        }
         return;
       }
       const formsAddonBase = path.basename(formsAddonPath);
@@ -108,13 +112,17 @@ export class SdkSetupCommand extends Command<
           if (progress) {
             progress(msg);
           }
-          console.log(msg);
+          if (!progress) {
+            console.log(msg);
+          }
         } catch (e: any) {
           const msg = `[ERROR] Failed to copy Forms Add-on: ${e.message}`;
           if (progress) {
             progress(msg);
           }
-          console.error(msg);
+          if (!progress) {
+            console.error(msg);
+          }
         }
       }
       formsAddonFar = await extractFileFromZip(
@@ -131,13 +139,17 @@ export class SdkSetupCommand extends Command<
         if (progress) {
           progress(msg);
         }
-        console.log(msg);
+        if (!progress) {
+          console.log(msg);
+        }
       } else {
         const msg = `[INFO] No aem-forms-addon-*.far found in ${formsAddonBase}. Skipping Forms add-on installation.`;
         if (progress) {
           progress(msg);
         }
-        console.log(msg);
+        if (!progress) {
+          console.log(msg);
+        }
       }
     }
     // --- Copy quickstart jar and forms add-on far to each instance ---
@@ -152,11 +164,17 @@ export class SdkSetupCommand extends Command<
       const destJar = path.join(instanceDir, instanceJar);
       if (!fs.existsSync(destJar)) {
         fs.copyFileSync(quickstartJar, destJar);
-        console.log(`[${instance.name}] Copied ${quickstartJar} to ${destJar}`);
+        if (!progress) {
+          console.log(
+            `[${instance.name}] Copied ${quickstartJar} to ${destJar}`
+          );
+        }
       } else {
-        console.log(
-          `[${instance.name}] ${instanceJar} already exists. Skipping copy.`
-        );
+        if (!progress) {
+          console.log(
+            `[${instance.name}] ${instanceJar} already exists. Skipping copy.`
+          );
+        }
       }
       // Copy forms add-on far to crx-quickstart/install if present
       if (formsAddonFar) {
@@ -168,22 +186,32 @@ export class SdkSetupCommand extends Command<
         const destFar = path.join(installDir, formsAddonBasename);
         if (!fs.existsSync(destFar)) {
           fs.copyFileSync(formsAddonFar, destFar);
-          console.log(
-            `[${instance.name}] Copied ${formsAddonFar} to ${destFar}`
-          );
+          if (!progress) {
+            console.log(
+              `[${instance.name}] Copied ${formsAddonFar} to ${destFar}`
+            );
+          }
         } else {
-          console.log(
-            `[${instance.name}] ${formsAddonBasename} already exists in install dir. Skipping copy.`
-          );
+          if (!progress) {
+            console.log(
+              `[${instance.name}] ${formsAddonBasename} already exists in install dir. Skipping copy.`
+            );
+          }
         }
       } else {
-        console.log(
-          `[${instance.name}] No Forms Add-on .far provided. Skipping.`
-        );
+        if (!progress) {
+          console.log(
+            `[${instance.name}] No Forms Add-on .far provided. Skipping.`
+          );
+        }
       }
     }
-    console.log(
-      "AEM JARs and Forms Add-on ensured for all instances. The crx-quickstart directory will be created on first start."
-    );
+    if (!progress) {
+      console.log(
+        "AEM JARs and Forms Add-on ensured for all instances. The crx-quickstart directory will be created on first start."
+      );
+    }
+    // Ensure process exits after setup completes
+    process.exit(0);
   }
 }

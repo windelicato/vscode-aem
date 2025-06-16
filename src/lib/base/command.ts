@@ -15,6 +15,10 @@ export abstract class Command<T extends ArgDefinitions, CbType = Function> {
     this.config = config || loadConfigFile();
   }
 
+  getArguments(): T {
+    return this.arguments;
+  }
+
   getHelpText(): string {
     return `${this.name}: ${this.description}\n` + generateHelp(this.arguments);
   }

@@ -20,11 +20,13 @@ COMMANDS
   sdk setup         Setup the AEM SDK
   maven [module]    Run Maven install (optionally for a module)
   scaffold          Scaffold a new AEM project
-  config init       Generate a default config file
-  config show       Show the fully resolved config
-  config env        Show environment variable overrides for config
-  config env-list   List all available config environment variables
-  help              Show this help message
+  config init [path]      Generate a default config file at [path] (default: .aemrc.json)
+  config show             Show the fully resolved config
+  config path             Show the config file path currently in use
+  config validate [path]  Validate the config file at [path] (default: .aemrc.json)
+  config env              Show environment variable overrides for config
+  config env-list         List all available config environment variables
+  help                    Show this help message
 
 For command-specific help, use aem <command> --help.
 
@@ -74,11 +76,17 @@ export function printSubcommandHelp(command: string, subcommand?: string) {
     );
   } else if (command === "config") {
     console.log(
-      `aem config init
-  Generate a default config file.
+      `aem config init [path]
+  Generate a default config file at [path] (default: .aemrc.json).
 
 aem config show
   Show the fully resolved config (including env overrides and defaults).
+
+aem config path
+  Show the config file path currently in use.
+
+aem config validate [path]
+  Validate the config file at [path] (default: .aemrc.json) and report missing/invalid fields.
 
 aem config env
   Show environment variable overrides currently set for config fields.
