@@ -1,0 +1,31 @@
+# Ignore everything by default
+*
+
+# Allow only the CLI build output and essentials
+!dist/cli/
+!package.json
+!README.md
+!LICENSE
+
+# Exclude VS Code extension build and source
+src/
+dist/vscode/
+images/
+.vscode/
+.github/
+*.vsix
+*.md
+*.mjs
+*.ts
+*.tsx
+*.js.map
+
+# Node and test files
+node_modules/
+out/
+.vscode-test/
+
+# Ignore config and misc
+.eslintrc*
+*.log
+npm-debug.log

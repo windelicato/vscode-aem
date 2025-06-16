@@ -1,12 +1,12 @@
-name: Build and Publish CLI and VS Code Extension
+name: Lint and Test
 
 on:
-  push:
-    tags:
-      - "v*" # Only publish on version tags like v0.0.1
+  pull_request:
+    branches:
+      - "**"
 
 jobs:
-  build-and-publish-vscode:
+  build-vscode:
     runs-on: macOS-latest
     steps:
       - name: Checkout code
@@ -31,13 +31,7 @@ jobs:
       - name: Package extension
         run: npx vsce package --out dist/vscode
 
-      - name: Publish to VS Code Marketplace
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: npx vsce publish --packagePath $(ls dist/vscode/*.vsix)
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-
-  build-and-publish-cli:
+  build-cli:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -59,9 +53,3 @@ jobs:
 
       - name: Build CLI
         run: npm run build:cli
-
-      - name: Publish to npm
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
